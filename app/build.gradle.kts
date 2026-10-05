@@ -9,6 +9,9 @@ plugins {
     alias(libs.plugins.roborazzi)
 }
 
+// пустой секрет GitHub приходит пустой строкой, считаем его отсутствующим
+fun env(name: String): String? = System.getenv(name)?.takeIf { it.isNotBlank() }
+
 val signingProps = Properties().apply {
     rootProject.file("keystore.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
 }
@@ -31,12 +34,14 @@ android {
 
     signingConfigs {
         create("release") {
-            val keystore = System.getenv("FARVATER_KEYSTORE") ?: signingProps.getProperty("storeFile")
+            val keystore = env("FARVATER_KEYSTORE") ?: signingProps.getProperty("storeFile")
             if (keystore != null) {
                 storeFile = file(keystore)
-                storePassword = System.getenv("FARVATER_KEYSTORE_PASSWORD") ?: signingProps.getProperty("storePassword")
-                keyAlias = System.getenv("FARVATER_KEY_ALIAS") ?: signingProps.getProperty("keyAlias")
-                keyPassword = System.getenv("FARVATER_KEY_PASSWORD") ?: signingProps.getProperty("keyPassword")
+                val password = env("FARVATER_KEYSTORE_PASSWORD") ?: signingProps.getProperty("storePassword")
+                storePassword = password
+                // псевдоним и пароль ключа необязательны: по умолчанию farvater и пароль хранилища
+                keyAlias = env("FARVATER_KEY_ALIAS") ?: signingProps.getProperty("keyAlias") ?: "farvater"
+                keyPassword = env("FARVATER_KEY_PASSWORD") ?: signingProps.getProperty("keyPassword") ?: password
             }
         }
     }
