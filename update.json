@@ -1,35 +1,31 @@
 {
-  "versionCode": 10000,
-  "versionName": "1.0.0",
+  "versionCode": 10001,
+  "versionName": "1.0.1",
   "published": "05.10.2026",
   "critical": false,
   "notes": [
-    "Первый выпуск Фарватера",
-    "Интерфейс в стиле iOS с плавными анимациями",
-    "Публичные подписки и свои подписки с поддержкой HWID",
-    "Зашифрованный DNS и защищённый локальный прокси",
-    "Проверка обновлений прямо в приложении"
+    "Обновлены условия использования"
   ],
   "assets": {
     "arm64-v8a": {
-      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.0/Farvater-1.0.0-arm64-v8a.apk",
-      "sha256": "00449af94f1f9152521144291aef8a84fff0c45c1fcf5380152579cb41c9b8a9",
-      "size": 21198767
+      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.1/Farvater-1.0.1-arm64-v8a.apk",
+      "sha256": "26421e7ec5159da472848958aa83f3dba0aa5ffb8d8e887c4a52c553be6726d8",
+      "size": 21198771
     },
     "armeabi-v7a": {
-      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.0/Farvater-1.0.0-armeabi-v7a.apk",
-      "sha256": "175e71b1f624acf16cd31a7a36483e29c9356cb70ba28aa23dcd17b3da1467e8",
-      "size": 21708925
+      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.1/Farvater-1.0.1-armeabi-v7a.apk",
+      "sha256": "6c8d52ceb6fcb576cd0081ab98ec92446e4bdeea13b5ca7a25fe5237cab671b0",
+      "size": 21708929
     },
     "universal": {
-      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.0/Farvater-1.0.0-universal.apk",
-      "sha256": "5c92a935e1ec6ed29f3edc02d51ea4cd94522e81029991aaf887779d45f78161",
-      "size": 47424420
+      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.1/Farvater-1.0.1-universal.apk",
+      "sha256": "2e987b19a1a8b2c402416c9274b75db864d8ea3a0dd88ed8cd9c60766fddb8cf",
+      "size": 47424424
     },
     "x86_64": {
-      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.0/Farvater-1.0.0-x86_64.apk",
-      "sha256": "599f1305356c0d6a51dfc1cc62ecb4dca90656906a4691216c731554ed77d71e",
-      "size": 22220482
+      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.1/Farvater-1.0.1-x86_64.apk",
+      "sha256": "9269ce48d0cbd93d58264ead44d32355b783fa8522b2c9f7c3f3659df152374f",
+      "size": 22220486
     }
   }
 }
