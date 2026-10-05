@@ -4,6 +4,8 @@ name: Релиз
 on:
   push:
     tags: ["v*"]
+    # ветка release/v1.2.3 тоже выпускает релиз: тег v1.2.3 создастся сам
+    branches: ["release/v*"]
 
 permissions:
   contents: write
@@ -15,6 +17,9 @@ jobs:
       NDK_VERSION: 27.2.12479018
     steps:
       - uses: actions/checkout@v4
+
+      - name: Версия релиза
+        run: echo "TAG=${GITHUB_REF_NAME#release/}" >> "$GITHUB_ENV"
 
       - uses: actions/setup-java@v5
         with:
@@ -58,12 +63,12 @@ jobs:
         # версия из тега, обновления приложение ищет в этом же репозитории
         run: >
           gradle :app:testReleaseUnitTest :app:assembleRelease
-          -PfarvaterVersion=${{ github.ref_name }}
+          -PfarvaterVersion=${{ env.TAG }}
           -PfarvaterUpdateRepo=${{ github.repository }}
 
       - name: Файлы релиза, update.json и отпечаток ключа
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${TAG#v}"
           mkdir dist
           for apk in app/build/outputs/apk/release/*.apk; do
             abi=$(basename "$apk" .apk | sed -E 's/^app-(.*)-release$/\1/')
@@ -72,7 +77,7 @@ jobs:
           (cd dist && sha256sum *.apk > SHA256SUMS.txt)
           APKSIGNER=$(ls -d "$ANDROID_SDK_ROOT"/build-tools/*/ | sort -V | tail -1)apksigner
           CERT=$("$APKSIGNER" verify --print-certs dist/*universal*.apk | grep -m1 'SHA-256' | awk -F': ' '{print $2}')
-          python3 scripts/make-update-json.py "$VERSION" "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" release-notes.txt dist > dist/update.json
+          python3 scripts/make-update-json.py "$VERSION" "$GITHUB_REPOSITORY" "$TAG" release-notes.txt dist > dist/update.json
           cat dist/update.json
           {
             echo "Что нового:"
@@ -88,7 +93,9 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         with:
-          name: Фарватер ${{ github.ref_name }}
+          name: Фарватер ${{ env.TAG }}
+          tag_name: ${{ env.TAG }}
+          target_commitish: ${{ github.sha }}
           body_path: dist/NOTES.md
           files: |
             dist/*.apk
@@ -108,5 +115,5 @@ jobs:
           cp dist/update.json upd/update.json
           cd upd
           git add update.json
-          git commit -q -m "update.json ${GITHUB_REF_NAME}" || exit 0
+          git commit -q -m "update.json ${TAG}" || exit 0
           git push origin updates
