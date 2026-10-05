@@ -19,7 +19,7 @@ import app.farvater.vpn.VpnBus
 import app.farvater.vpn.VpnState
 import java.util.concurrent.TimeUnit
 
-// фоновая проверка обновлений раз в 12 часов
+// фоновая проверка обновлений раз в 15 минут, чаще Android не разрешает
 class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
@@ -40,10 +40,11 @@ class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         private const val NOTIFICATION_ID = 21
 
         fun schedule(context: Context) {
-            val request = PeriodicWorkRequestBuilder<UpdateWorker>(12, TimeUnit.HOURS)
+            val request = PeriodicWorkRequestBuilder<UpdateWorker>(15, TimeUnit.MINUTES)
                 .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
                 .build()
-            WorkManager.getInstance(context).enqueueUniquePeriodicWork("updates", ExistingPeriodicWorkPolicy.KEEP, request)
+            // UPDATE, чтобы новый интервал применился и после обновления приложения
+            WorkManager.getInstance(context).enqueueUniquePeriodicWork("updates", ExistingPeriodicWorkPolicy.UPDATE, request)
         }
 
         fun notify(context: Context, info: UpdateInfo) {

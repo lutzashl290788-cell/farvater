@@ -4,6 +4,12 @@
 
 ## [Не выпущено]
 
+## [1.0.2] — 2026-10-05
+
+### Изменено
+
+- Обновления проверяются каждые 15 минут и при каждом запуске, а не раз в 12 часов.
+
 ## [1.0.1] — 2026-10-05
 
 ### Изменено
@@ -32,6 +38,7 @@
 - Интерфейс в стиле iOS, светлая и тёмная темы.
 - Импорт подписки по ссылке `farvater://import`.
 
-[Не выпущено]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.1...HEAD
+[Не выпущено]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/lutzashl290788-cell/farvater/releases/tag/v1.0.0

@@ -148,13 +148,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             VpnBus.state.collect { if (it is VpnState.Failed) toast(it.message) }
         }
-        // тихая проверка обновлений при запуске, не чаще раза в 6 часов
+        // тихая проверка обновлений при запуске, не чаще раза в 5 минут
         if (prefs.settings.autoUpdates && System.currentTimeMillis() - prefs.lastUpdateCheck > UPDATE_CHECK_GAP_MS) {
             checkUpdates(manual = false)
         }
     }
 
-    // ---------- обновления ----------
+    // обновления
 
     fun checkUpdates(manual: Boolean) {
         if (_state.value.updateStage is UpdateStage.Checking || _state.value.updateStage is UpdateStage.Downloading) return
@@ -564,7 +564,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     companion object {
         private val communityIds = BuiltInCatalog.sources.map { it.id }.toSet()
         private const val STALE_MS = 6 * 60 * 60 * 1000L
-        private const val UPDATE_CHECK_GAP_MS = 6 * 60 * 60 * 1000L
+        private const val UPDATE_CHECK_GAP_MS = 5 * 60 * 1000L
         private const val REBUILD_GAP_MS = 150L
         private const val FLUSH_MS = 300L
     }
