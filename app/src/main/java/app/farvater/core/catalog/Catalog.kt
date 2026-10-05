@@ -1,0 +1,98 @@
+package app.farvater.core.catalog
+
+// встроенный каталог публичных подписок
+data class CatalogSource(
+    val id: String,
+    val title: String,
+    val author: String,
+    val homepage: String,
+    val license: String,
+    val description: String,
+    val mirrors: List<String>,
+)
+
+object BuiltInCatalog {
+    val sources: List<CatalogSource> = listOf(
+        CatalogSource(
+            id = "zieng2-universal",
+            title = "WL Universal",
+            author = "zieng2",
+            homepage = "https://github.com/zieng2/wl",
+            license = "не указана",
+            description = "Полный список под белые списки. Есть российские зеркала.",
+            mirrors = listOf(
+                "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt",
+                "https://codeberg.org/zieng2/wl/raw/branch/main/vless_universal.txt",
+                "https://gitlab.com/zieng2/wl/raw/main/vless_universal.txt",
+                "https://hub.mos.ru/zieng2/wl/raw/main/list_universal.txt",
+                "https://gitverse.ru/api/repos/zieng2/wl/raw/branch/master/list_universal.txt",
+            ),
+        ),
+        CatalogSource(
+            id = "igareck-mobile",
+            title = "Белые списки, мобильные",
+            author = "igareck",
+            homepage = "https://github.com/igareck/vpn-configs-for-russia",
+            license = "GPL-3.0",
+            description = "150 лучших VLESS Reality для мобильного интернета, автотест каждые 2–4 часа.",
+            mirrors = listOf(
+                "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/Vless-Reality-White-Lists-Rus-Mobile.txt",
+                "https://gitlab.com/igareck/vpn-configs-for-russia/-/raw/main/Vless-Reality-White-Lists-Rus-Mobile.txt",
+                "https://codeberg.org/igareck/vpn-configs-for-russia/raw/branch/main/Vless-Reality-White-Lists-Rus-Mobile.txt",
+                "https://raw.githack.com/igareck/vpn-configs-for-russia/main/Vless-Reality-White-Lists-Rus-Mobile.txt",
+            ),
+        ),
+        CatalogSource(
+            id = "igareck-cidr",
+            title = "Белые списки, проверенные подсети",
+            author = "igareck",
+            homepage = "https://github.com/igareck/vpn-configs-for-russia",
+            license = "GPL-3.0",
+            description = "Узлы на адресах VK, Yandex, CDNvideo и Билайна.",
+            mirrors = listOf(
+                "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt",
+                "https://gitlab.com/igareck/vpn-configs-for-russia/-/raw/main/WHITE-CIDR-RU-checked.txt",
+                "https://codeberg.org/igareck/vpn-configs-for-russia/raw/branch/main/WHITE-CIDR-RU-checked.txt",
+                "https://raw.githack.com/igareck/vpn-configs-for-russia/main/WHITE-CIDR-RU-checked.txt",
+            ),
+        ),
+        CatalogSource(
+            id = "rjsxrd-bypass",
+            title = "rjsxrd",
+            author = "whoahaow",
+            homepage = "https://github.com/whoahaow/rjsxrd",
+            license = "MIT",
+            description = "Безопасные конфиги для обхода по SNI и подсетям, обновление ежечасно.",
+            mirrors = listOf(
+                "https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/bypass/bypass-all.txt",
+                "https://cdn.jsdelivr.net/gh/whoahaow/rjsxrd@main/githubmirror/bypass/bypass-all.txt",
+            ),
+        ),
+        CatalogSource(
+            id = "rkp-whitelist",
+            title = "РКП whitelist",
+            author = "RKPchannel",
+            homepage = "https://github.com/RKPchannel/RKP_bypass_configs",
+            license = "GPL-3.0",
+            description = "VLESS и Trojan, отобранные по подсетям и SNI белого списка.",
+            mirrors = listOf(
+                "https://raw.githubusercontent.com/RKPchannel/RKP_bypass_configs/refs/heads/main/whitelist.txt",
+                "https://cdn.jsdelivr.net/gh/RKPchannel/RKP_bypass_configs@main/whitelist.txt",
+            ),
+        ),
+        CatalogSource(
+            id = "byewhitelists2",
+            title = "ByeWhiteLists 2.0",
+            author = "ByeWhiteLists и GoodbyeWL",
+            homepage = "https://byewhitelists.github.io/",
+            license = "не указана",
+            description = "Более 300 серверов с предварительной проверкой.",
+            mirrors = listOf(
+                "https://raw.githubusercontent.com/ByeWhiteLists/ByeWhiteLists2/refs/heads/main/ByeWhiteLists2.txt",
+                "https://cdn.jsdelivr.net/gh/ByeWhiteLists/ByeWhiteLists2@main/ByeWhiteLists2.txt",
+            ),
+        ),
+    )
+
+    fun byId(id: String): CatalogSource? = sources.firstOrNull { it.id == id }
+}

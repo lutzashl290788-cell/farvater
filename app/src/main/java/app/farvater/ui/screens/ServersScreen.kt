@@ -1,0 +1,254 @@
+package app.farvater.ui.screens
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Dns
+import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.Stop
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import app.farvater.core.model.ProxyNode
+import app.farvater.ui.LocalBottomInset
+import app.farvater.ui.UiState
+import app.farvater.ui.components.DelayLabel
+import app.farvater.ui.components.NodeAvatar
+import app.farvater.ui.components.nodeSummary
+import app.farvater.ui.ios.AlertAction
+import app.farvater.ui.ios.AlertRole
+import app.farvater.ui.ios.IosAlert
+import app.farvater.ui.ios.IosCircleButton
+import app.farvater.ui.ios.IosCompactBar
+import app.farvater.ui.ios.IosDivider
+import app.farvater.ui.ios.IosLargeTitle
+import app.farvater.ui.ios.IosProgressBar
+import app.farvater.ui.ios.IosRow
+import app.farvater.ui.ios.IosSearchField
+import app.farvater.ui.ios.IosSegmented
+import app.farvater.ui.splitFlag
+import app.farvater.ui.theme.Ios
+import app.farvater.ui.theme.IosType
+
+private val Filters = listOf("Все", "Живые", "Reality", "XHTTP")
+
+@Suppress("DEPRECATION")
+@Composable
+fun ServersScreen(
+    state: UiState,
+    onSelect: (ProxyNode) -> Unit,
+    onTestAll: () -> Unit,
+    onCancelTest: () -> Unit,
+    onDeleteManual: (ProxyNode) -> Unit,
+    onCopied: () -> Unit,
+) {
+    val c = Ios.colors
+    var filter by rememberSaveable { mutableIntStateOf(0) }
+    var query by rememberSaveable { mutableStateOf("") }
+    var menuFor by remember { mutableStateOf<ProxyNode?>(null) }
+    val clipboard = LocalClipboardManager.current
+    val list = rememberLazyListState()
+    val collapsed by remember { derivedStateOf { list.firstVisibleItemIndex > 0 || list.firstVisibleItemScrollOffset > 70 } }
+
+    val visible = remember(state.nodes, state.results, filter, state.settings.hideDead, query) {
+        val needle = query.trim().lowercase()
+        state.nodes.filter { node ->
+            val r = state.results[node.id]
+            val passesDead = !state.settings.hideDead || r == null || r.alive
+            val passesFilter = when (filter) {
+                1 -> r?.alive == true
+                2 -> node.security == "reality"
+                3 -> node.transport == "xhttp"
+                else -> true
+            }
+            val passesQuery = needle.isEmpty() || node.name.lowercase().contains(needle) ||
+                node.protocol.title.lowercase().contains(needle) || node.address.contains(needle)
+            passesDead && passesFilter && passesQuery
+        }
+    }
+    val alive = remember(state.nodes, state.results) { state.nodes.count { state.results[it.id]?.alive == true } }
+
+    Box(Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = list,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 20.dp + LocalBottomInset.current),
+        ) {
+            item(key = "title") {
+                IosLargeTitle(
+                    "Узлы",
+                    subtitle = (
+                        if (state.results.isEmpty()) "${state.nodes.size} в списке, не проверены"
+                        else "${state.nodes.size} в списке, отвечают $alive"
+                        ) + if (state.hiddenInsecure > 0) ", скрыто небезопасных ${state.hiddenInsecure}" else "",
+                ) {
+                    if (state.progress != null) {
+                        IosCircleButton(Icons.Rounded.Stop, "Остановить проверку", onCancelTest, tint = c.red)
+                    } else {
+                        IosCircleButton(Icons.Rounded.Speed, "Проверить все узлы", onTestAll)
+                    }
+                }
+            }
+            item(key = "search") {
+                Column(Modifier.padding(horizontal = 16.dp)) {
+                    IosSearchField(query, { query = it }, "Страна, город или протокол")
+                    Spacer(Modifier.height(10.dp))
+                    IosSegmented(Filters, filter, { filter = it })
+                }
+            }
+            item(key = "progress") {
+                val p = state.progress
+                AnimatedVisibility(
+                    visible = p != null,
+                    enter = fadeIn() + expandVertically(spring(dampingRatio = 0.85f, stiffness = 380f)),
+                    exit = fadeOut() + shrinkVertically(),
+                ) {
+                    if (p != null) {
+                        Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp)) {
+                            Text(
+                                "Проверено ${p.done} из ${p.total}, отвечают ${p.alive}",
+                                style = IosType.footnote,
+                                color = c.secondaryLabel,
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            IosProgressBar(if (p.total == 0) 0f else p.done.toFloat() / p.total)
+                        }
+                    }
+                }
+            }
+            item(key = "gap") { Spacer(Modifier.height(16.dp)) }
+
+            if (visible.isEmpty()) {
+                item(key = "empty") { EmptyState(state.nodes.isEmpty()) }
+            } else {
+                itemsIndexed(visible, key = { _, n -> n.id }, contentType = { _, _ -> "node" }) { i, node ->
+                    val shape = when {
+                        visible.size == 1 -> RoundedCornerShape(12.dp)
+                        i == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+                        i == visible.lastIndex -> RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
+                        else -> RoundedCornerShape(0.dp)
+                    }
+                    Column(
+                        Modifier
+                            .animateItem()
+                            .padding(horizontal = 16.dp)
+                            .clip(shape)
+                            .background(c.cell),
+                    ) {
+                        NodeRow(
+                            node = node,
+                            state = state,
+                            onClick = { onSelect(node) },
+                            onLongClick = { menuFor = node },
+                        )
+                        if (i != visible.lastIndex) IosDivider(start = 68.dp)
+                    }
+                }
+            }
+        }
+        IosCompactBar("Узлы", visible = collapsed)
+    }
+
+    menuFor?.let { node ->
+        val actions = buildList {
+            add(AlertAction("Скопировать ссылку") {
+                clipboard.setText(AnnotatedString(node.raw))
+                menuFor = null
+                onCopied()
+            })
+            if (node.sourceId == ProxyNode.MANUAL_SOURCE) {
+                add(AlertAction("Удалить", AlertRole.Destructive) {
+                    onDeleteManual(node)
+                    menuFor = null
+                })
+            }
+            add(AlertAction("Отмена", AlertRole.Cancel) { menuFor = null })
+        }
+        IosAlert(
+            title = splitFlag(node.name).second,
+            message = "${node.protocol.title}, ${node.address}:${node.port}\nИсточник: ${state.sourceTitle(node.sourceId)}",
+            onDismiss = { menuFor = null },
+            actions = actions,
+        )
+    }
+}
+
+@Composable
+private fun NodeRow(node: ProxyNode, state: UiState, onClick: () -> Unit, onLongClick: () -> Unit) {
+    val c = Ios.colors
+    val (flag, title) = remember(node.name) { splitFlag(node.name) }
+    val selected = node.id == state.selectedId
+    IosRow(
+        title = title,
+        subtitle = (if (node.isInsecure) "Без шифрования · " else "") + nodeSummary(node) + " · " + state.sourceTitle(node.sourceId),
+        subtitleColor = if (node.isInsecure) c.red else null,
+        subtitleLines = 1,
+        leading = { NodeAvatar(flag, node) },
+        onClick = onClick,
+        onLongClick = onLongClick,
+        trailing = {
+            DelayLabel(state.results[node.id])
+            AnimatedVisibility(visible = selected, enter = fadeIn(), exit = fadeOut()) {
+                Row {
+                    Spacer(Modifier.width(8.dp))
+                    Icon(Icons.Rounded.Check, contentDescription = "Выбран", tint = c.tint, modifier = Modifier.size(20.dp))
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun EmptyState(noNodes: Boolean) {
+    val c = Ios.colors
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = 40.dp, vertical = 48.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(Icons.Rounded.Dns, contentDescription = null, tint = c.tertiaryLabel, modifier = Modifier.size(52.dp))
+        Spacer(Modifier.height(12.dp))
+        Text(if (noNodes) "Узлов пока нет" else "Ничего не нашлось", style = IosType.title3, color = c.label)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            if (noNodes) "Включите источники на вкладке «Источники» или вставьте свою подписку" else "Измените запрос или фильтр",
+            style = IosType.subheadline,
+            color = c.secondaryLabel,
+            textAlign = TextAlign.Center,
+        )
+    }
+}

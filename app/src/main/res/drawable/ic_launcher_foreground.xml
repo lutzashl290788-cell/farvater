@@ -1,0 +1,23 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- лучи -->
+    <path android:fillColor="#FFB547" android:fillAlpha="0.55"
+        android:pathData="M49,39 L30,33 L30,45 Z" />
+    <path android:fillColor="#FFB547" android:fillAlpha="0.55"
+        android:pathData="M59,39 L78,33 L78,45 Z" />
+    <!-- крыша -->
+    <path android:fillColor="#E6EDF3" android:pathData="M47.5,36 L60.5,36 L54,29.5 Z" />
+    <!-- фонарь -->
+    <path android:fillColor="#FFB547" android:pathData="M49,36 h10 v7 h-10 Z" />
+    <!-- башня -->
+    <path android:fillColor="#E6EDF3" android:pathData="M50,43 L58,43 L61.5,73 L46.5,73 Z" />
+    <!-- полоса -->
+    <path android:fillColor="#FFB547" android:pathData="M48.4,57 L59.6,57 L60.1,62 L47.9,62 Z" />
+    <!-- основание -->
+    <path android:fillColor="#E6EDF3" android:pathData="M42,73 h24 v3.5 h-24 Z" />
+    <!-- волна -->
+    <path android:strokeColor="#4FD1C5" android:strokeWidth="2.2" android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M40,82 q3.5,-2.5 7,0 t7,0 t7,0 t7,0" />
+</vector>

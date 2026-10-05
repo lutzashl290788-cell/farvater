@@ -1,0 +1,251 @@
+package app.farvater.core.xray
+
+import app.farvater.core.model.Protocol
+import app.farvater.core.model.ProxyNode
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.addJsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.putJsonObject
+
+// собирает конфиг Xray для одного узла
+object XrayConfigBuilder {
+    const val SOCKS_PORT = 10808
+
+    // сервисы, которые идут мимо VPN
+    private val DIRECT_DOMAINS = listOf(
+        "gosuslugi.ru", "gov.ru", "mos.ru", "nalog.ru",
+        "sberbank.ru", "sber.ru", "vtb.ru", "tbank.ru", "tinkoff.ru", "alfabank.ru", "gazprombank.ru",
+        "yandex.ru", "ya.ru", "yandex.net", "vk.com", "vk.ru", "userapi.com", "ok.ru", "mail.ru", "max.ru",
+        "ozon.ru", "wildberries.ru", "wb.ru", "avito.ru", "2gis.ru",
+    )
+    private val PRIVATE_CIDRS = listOf(
+        "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8", "169.254.0.0/16",
+    )
+
+    fun isSupported(node: ProxyNode): Boolean = node.protocol != Protocol.HYSTERIA2
+
+    // DNS по HTTPS через узел: адреса по IP, чтобы не зависеть от обычного DNS
+    private val ENCRYPTED_DNS = listOf("https://1.1.1.1/dns-query", "https://8.8.8.8/dns-query")
+
+    // forTest без входа и маршрутизации
+    fun build(node: ProxyNode, directRuServices: Boolean, forTest: Boolean = false, encryptedDns: Boolean = true): String? {
+        val proxy = outbound(node) ?: return null
+        return buildJsonObject {
+            putJsonObject("log") { put("loglevel", "warning") }
+            if (!forTest) {
+                putJsonArray("inbounds") {
+                    addJsonObject {
+                        put("tag", "socks")
+                        put("listen", "127.0.0.1")
+                        put("port", SOCKS_PORT)
+                        put("protocol", "socks")
+                        putJsonObject("settings") {
+                            put("auth", "password")
+                            putJsonArray("accounts") {
+                                addJsonObject {
+                                    put("user", LocalProxyAuth.user)
+                                    put("pass", LocalProxyAuth.pass)
+                                }
+                            }
+                            put("udp", true)
+                        }
+                        putJsonObject("sniffing") {
+                            put("enabled", true)
+                            putJsonArray("destOverride") { add("http"); add("tls"); add("quic") }
+                            put("routeOnly", true)
+                        }
+                    }
+                }
+                putJsonObject("dns") {
+                    putJsonArray("servers") {
+                        if (encryptedDns) ENCRYPTED_DNS.forEach { add(it) } else { add("1.1.1.1"); add("8.8.8.8") }
+                    }
+                    put("queryStrategy", "UseIPv4")
+                }
+            }
+            putJsonArray("outbounds") {
+                add(proxy)
+                addJsonObject { put("tag", "direct"); put("protocol", "freedom") }
+                addJsonObject { put("tag", "block"); put("protocol", "blackhole") }
+                if (!forTest && encryptedDns) addJsonObject { put("tag", "dns-out"); put("protocol", "dns") }
+            }
+            if (!forTest) {
+                putJsonObject("routing") {
+                    put("domainStrategy", "AsIs")
+                    putJsonArray("rules") {
+                        // запросы DNS из туннеля отвечает ядро, само уходя через узел по HTTPS
+                        if (encryptedDns) addJsonObject {
+                            put("type", "field")
+                            putJsonArray("inboundTag") { add("socks") }
+                            put("port", "53")
+                            put("outboundTag", "dns-out")
+                        }
+                        addJsonObject {
+                            put("type", "field")
+                            putJsonArray("ip") { PRIVATE_CIDRS.forEach { add(it) } }
+                            put("outboundTag", "direct")
+                        }
+                        if (directRuServices) addJsonObject {
+                            put("type", "field")
+                            putJsonArray("domain") { DIRECT_DOMAINS.forEach { add("domain:$it") } }
+                            put("outboundTag", "direct")
+                        }
+                    }
+                }
+            }
+        }.toString()
+    }
+
+    private fun outbound(n: ProxyNode): JsonObject? = when (n.protocol) {
+        Protocol.VLESS -> buildJsonObject {
+            put("tag", "proxy")
+            put("protocol", "vless")
+            putJsonObject("settings") {
+                putJsonArray("vnext") {
+                    addJsonObject {
+                        put("address", n.address)
+                        put("port", n.port)
+                        putJsonArray("users") {
+                            addJsonObject {
+                                put("id", n.secret)
+                                put("encryption", n.params["encryption"].nb() ?: "none")
+                                n.params["flow"].nb()?.let { put("flow", it) }
+                            }
+                        }
+                    }
+                }
+            }
+            put("streamSettings", stream(n))
+        }
+
+        Protocol.VMESS -> buildJsonObject {
+            put("tag", "proxy")
+            put("protocol", "vmess")
+            putJsonObject("settings") {
+                putJsonArray("vnext") {
+                    addJsonObject {
+                        put("address", n.address)
+                        put("port", n.port)
+                        putJsonArray("users") {
+                            addJsonObject {
+                                put("id", n.secret)
+                                put("alterId", n.params["aid"]?.toIntOrNull() ?: 0)
+                                put("security", n.params["scy"].nb() ?: "auto")
+                            }
+                        }
+                    }
+                }
+            }
+            put("streamSettings", stream(n))
+        }
+
+        Protocol.TROJAN -> buildJsonObject {
+            put("tag", "proxy")
+            put("protocol", "trojan")
+            putJsonObject("settings") {
+                putJsonArray("servers") {
+                    addJsonObject {
+                        put("address", n.address)
+                        put("port", n.port)
+                        put("password", n.secret)
+                    }
+                }
+            }
+            put("streamSettings", stream(n))
+        }
+
+        Protocol.SHADOWSOCKS -> buildJsonObject {
+            put("tag", "proxy")
+            put("protocol", "shadowsocks")
+            putJsonObject("settings") {
+                putJsonArray("servers") {
+                    addJsonObject {
+                        put("address", n.address)
+                        put("port", n.port)
+                        put("method", n.params["method"].orEmpty())
+                        put("password", n.secret)
+                    }
+                }
+            }
+            putJsonObject("streamSettings") { put("network", "tcp") }
+        }
+
+        // Hysteria2 пока не поддерживается
+        Protocol.HYSTERIA2 -> null
+    }
+
+    private fun stream(n: ProxyNode): JsonObject = buildJsonObject {
+        val p = n.params
+        val network = n.transport
+        val security = when {
+            n.security.isNotBlank() -> n.security
+            n.protocol == Protocol.TROJAN -> "tls"
+            else -> "none"
+        }
+        val sni = p["sni"].nb() ?: p["peer"].nb() ?: p["host"].nb()
+        val path = p["path"].nb()
+        val host = p["host"].nb()
+
+        put("network", network)
+        put("security", security)
+
+        when (security) {
+            "tls" -> putJsonObject("tlsSettings") {
+                sni?.let { put("serverName", it) }
+                p["fp"].nb()?.let { put("fingerprint", it) }
+                p["alpn"].nb()?.let { alpn -> putJsonArray("alpn") { alpn.split(',').forEach { add(it.trim()) } } }
+                if (p["allowInsecure"] == "1" || p["insecure"] == "1") put("allowInsecure", true)
+            }
+            "reality" -> putJsonObject("realitySettings") {
+                put("serverName", sni.orEmpty())
+                put("fingerprint", p["fp"].nb() ?: "chrome")
+                put("publicKey", p["pbk"].orEmpty())
+                put("shortId", p["sid"].orEmpty())
+                p["spx"].nb()?.let { put("spiderX", it) }
+                p["pqv"].nb()?.let { put("mldsa65Verify", it) }
+            }
+        }
+
+        when (network) {
+            "ws" -> putJsonObject("wsSettings") {
+                path?.let { put("path", it) }
+                host?.let { put("host", it) }
+            }
+            "httpupgrade" -> putJsonObject("httpupgradeSettings") {
+                path?.let { put("path", it) }
+                host?.let { put("host", it) }
+            }
+            "xhttp", "splithttp" -> putJsonObject("xhttpSettings") {
+                path?.let { put("path", it) }
+                host?.let { put("host", it) }
+                p["mode"].nb()?.let { put("mode", it) }
+                p["extra"].nb()?.let { extra ->
+                    runCatching { Json.parseToJsonElement(extra).jsonObject }.getOrNull()?.let { put("extra", it) }
+                }
+            }
+            "grpc" -> putJsonObject("grpcSettings") {
+                put("serviceName", p["serviceName"].nb() ?: path.orEmpty())
+                if (p["mode"] == "multi") put("multiMode", true)
+                p["authority"].nb()?.let { put("authority", it) }
+            }
+            "tcp", "raw" -> if (p["headerType"] == "http") putJsonObject("tcpSettings") {
+                putJsonObject("header") {
+                    put("type", "http")
+                    putJsonObject("request") {
+                        putJsonArray("path") { add(path ?: "/") }
+                        putJsonObject("headers") {
+                            putJsonArray("Host") { host?.split(',')?.forEach { add(it.trim()) } }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun String?.nb(): String? = this?.takeIf { it.isNotBlank() }
+}

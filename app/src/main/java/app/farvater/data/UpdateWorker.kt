@@ -1,0 +1,69 @@
+package app.farvater.data
+
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import androidx.core.app.NotificationCompat
+import androidx.work.Constraints
+import androidx.work.CoroutineWorker
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.WorkerParameters
+import app.farvater.App
+import app.farvater.MainActivity
+import app.farvater.R
+import app.farvater.vpn.VpnBus
+import app.farvater.vpn.VpnState
+import java.util.concurrent.TimeUnit
+
+// фоновая проверка обновлений раз в 12 часов
+class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
+
+    override suspend fun doWork(): Result {
+        if (!App.prefs.settings.autoUpdates) return Result.success()
+        val info = App.updates.check(viaTunnel = VpnBus.state.value is VpnState.Connected).getOrNull()
+            ?: return Result.success()
+        App.prefs.lastUpdateCheck = System.currentTimeMillis()
+        // об одной версии напоминаем один раз
+        if (App.prefs.notifiedVersion >= info.versionCode) return Result.success()
+        App.prefs.notifiedVersion = info.versionCode
+        notify(applicationContext, info)
+        return Result.success()
+    }
+
+    companion object {
+        const val CHANNEL = "updates"
+        const val EXTRA_OPEN_UPDATE = "app.farvater.OPEN_UPDATE"
+        private const val NOTIFICATION_ID = 21
+
+        fun schedule(context: Context) {
+            val request = PeriodicWorkRequestBuilder<UpdateWorker>(12, TimeUnit.HOURS)
+                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                .build()
+            WorkManager.getInstance(context).enqueueUniquePeriodicWork("updates", ExistingPeriodicWorkPolicy.KEEP, request)
+        }
+
+        fun notify(context: Context, info: UpdateInfo) {
+            val open = PendingIntent.getActivity(
+                context, 3,
+                Intent(context, MainActivity::class.java).putExtra(EXTRA_OPEN_UPDATE, true)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
+            val text = info.notes.take(3).joinToString("\n").ifBlank { "Нажмите, чтобы обновить" }
+            val notification = NotificationCompat.Builder(context, CHANNEL)
+                .setSmallIcon(R.drawable.ic_beacon)
+                .setContentTitle(if (info.critical) "Важное обновление Фарватера ${info.versionName}" else "Доступен Фарватер ${info.versionName}")
+                .setContentText(text.lineSequence().first())
+                .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+                .setPriority(if (info.critical) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT)
+                .setContentIntent(open)
+                .setAutoCancel(true)
+                .build()
+            context.getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, notification)
+        }
+    }
+}

@@ -1,0 +1,54 @@
+name: Скриншоты экранов
+
+on:
+  push:
+    branches: [main, "ui/**"]
+    paths: ["app/src/**", "app/build.gradle.kts", "gradle/**", ".github/workflows/screenshots.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: screenshots
+  cancel-in-progress: false
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+        with:
+          # пакета tools больше нет в SDK
+          packages: platform-tools
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.14.3"
+
+      - name: Снимки
+        run: gradle :app:recordRoborazziDebug --tests 'app.farvater.ui.ScreenshotTest'
+
+      - name: В ветку screenshots
+        run: |
+          git config user.name "github-actions"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git fetch --depth 1 origin screenshots; then
+            git worktree add -B screenshots shots FETCH_HEAD
+          else
+            git worktree add --orphan -b screenshots shots
+          fi
+          mkdir -p "shots/$GITHUB_REF_NAME"
+          rm -f "shots/$GITHUB_REF_NAME"/*.png
+          cp app/build/outputs/roborazzi/*.png "shots/$GITHUB_REF_NAME/"
+          cd shots
+          git add -A
+          git commit -q -m "${GITHUB_REF_NAME} ${GITHUB_SHA::7}" || exit 0
+          git push origin screenshots

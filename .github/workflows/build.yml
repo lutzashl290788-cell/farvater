@@ -1,0 +1,118 @@
+name: Проверочная сборка
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+# новый запуск той же ветки отменяет старый: не тратим минуты на устаревшие и повторные сборки
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    env:
+      NDK_VERSION: 27.2.12479018
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+        with:
+          # пакета tools больше нет в SDK
+          packages: platform-tools
+
+      - name: NDK
+        run: |
+          sdkmanager "ndk;${NDK_VERSION}"
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Ядро и TUN-мост
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/fetch-natives.sh
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.14.3"
+
+      - name: Тесты и debug-сборка
+        run: gradle :app:testDebugUnitTest :app:assembleDebug
+
+      - name: Состав APK
+        run: |
+          for apk in app/build/outputs/apk/debug/*.apk; do
+            echo "== $(basename "$apk") — $(du -h "$apk" | cut -f1)"
+            unzip -l "$apk" | awk '/lib\/.*\.so$/ {print "   " $4 " (" int($1/1024) " КБ)"}'
+          done
+          # без ядра и TUN-моста VPN не работает
+          listing="$(unzip -l app/build/outputs/apk/debug/*universal*.apk)"
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            for lib in libgojni.so libhev-socks5-tunnel.so; do
+              grep -q "lib/$abi/$lib" <<<"$listing" || { echo "::error::В APK нет $abi/$lib"; exit 1; }
+            done
+          done
+          # папка x86 без TUN-моста ломает VPN
+          if grep -q "lib/x86/" <<<"$listing"; then echo "::error::В APK попала папка lib/x86"; exit 1; fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: farvater-debug
+          path: app/build/outputs/apk/debug/*.apk
+
+  # релиз без подписи: проверяет сжатие R8 и lint до того, как появится ключ
+  release-check:
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      NDK_VERSION: 27.2.12479018
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+        with:
+          # пакета tools больше нет в SDK
+          packages: platform-tools
+
+      - name: NDK
+        run: |
+          sdkmanager "ndk;${NDK_VERSION}"
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Ядро и TUN-мост
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/fetch-natives.sh
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.14.3"
+
+      - name: Release без подписи
+        run: gradle :app:assembleRelease
+
+      - name: Ядро и мост пережили R8
+        run: |
+          apk=$(ls app/build/outputs/apk/release/*universal*.apk)
+          ls -la app/build/outputs/apk/release/
+          listing="$(unzip -l "$apk")"
+          for lib in libgojni.so libhev-socks5-tunnel.so; do
+            grep -q "lib/arm64-v8a/$lib" <<<"$listing" || { echo "::error::В release нет $lib"; exit 1; }
+          done
+          # классы, которые вызываются через рефлексию и JNI, должны остаться с прежними именами
+          dex="$(unzip -p "$apk" 'classes*.dex' | strings)"
+          for cls in libv2ray/Libv2ray hev/sockstun/TProxyService; do
+            grep -q "L$cls;" <<<"$dex" || { echo "::error::R8 удалил или переименовал $cls"; exit 1; }
+          done

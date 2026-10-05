@@ -1,0 +1,571 @@
+package app.farvater.ui
+
+import android.app.Application
+import android.content.Intent
+import android.net.VpnService
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import app.farvater.App
+import app.farvater.core.catalog.BuiltInCatalog
+import app.farvater.core.model.ProxyNode
+import app.farvater.core.parser.SubscriptionParser
+import app.farvater.core.xray.XrayConfigBuilder
+import app.farvater.data.AppSettings
+import app.farvater.data.LEGAL_VERSION
+import app.farvater.data.SourceSnapshot
+import app.farvater.data.UpdateInfo
+import app.farvater.data.UserSource
+import app.farvater.engine.NodeTester
+import app.farvater.engine.TestMethod
+import app.farvater.engine.TestResult
+import app.farvater.vpn.FarvaterVpnService
+import app.farvater.vpn.VpnBus
+import app.farvater.vpn.VpnState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.channels.Channel
+import java.security.MessageDigest
+
+data class SourceUi(
+    val id: String,
+    val title: String,
+    val author: String,
+    val license: String,
+    val homepage: String,
+    val description: String,
+    val community: Boolean,
+    val enabled: Boolean,
+    val nodeCount: Int,
+    val updatedAt: Long,
+    val error: String?,
+    val loading: Boolean,
+    // что скрыто из подписки и почему, например «3 Hysteria2, 2 небезопасных»
+    val hidden: String? = null,
+)
+
+data class TestProgress(val done: Int, val total: Int, val alive: Int)
+
+// сообщение от автора подписки
+data class Announcement(val source: String, val text: String)
+
+data class UiState(
+    val settings: AppSettings = AppSettings(),
+    val sources: List<SourceUi> = emptyList(),
+    // живые по задержке, потом непроверенные, потом мёртвые
+    val nodes: List<ProxyNode> = emptyList(),
+    val results: Map<String, TestResult> = emptyMap(),
+    val selectedId: String? = null,
+    val progress: TestProgress? = null,
+    val refreshing: Boolean = false,
+    val announcements: List<Announcement> = emptyList(),
+    val message: String? = null,
+    // ссылка из диплинка ждёт подтверждения
+    val pendingImport: String? = null,
+    // сколько небезопасных узлов скрыто безопасным режимом
+    val hiddenInsecure: Int = 0,
+    // доступное обновление и что с ним сейчас происходит
+    val update: UpdateInfo? = null,
+    val updateStage: UpdateStage = UpdateStage.Idle,
+    val showUpdate: Boolean = false,
+) {
+    val selectedNode: ProxyNode? get() = nodes.firstOrNull { it.id == selectedId }
+    fun sourceTitle(id: String): String =
+        if (id == ProxyNode.MANUAL_SOURCE) "вручную" else sources.firstOrNull { it.id == id }?.title ?: id
+}
+
+sealed interface UiEvent {
+    data class RequestVpnPermission(val intent: Intent) : UiEvent
+    data class StartActivity(val intent: Intent) : UiEvent
+}
+
+sealed interface UpdateStage {
+    data object Idle : UpdateStage
+    data object Checking : UpdateStage
+    data class Downloading(val progress: Float) : UpdateStage
+    data class Failed(val message: String) : UpdateStage
+}
+
+class MainViewModel(app: Application) : AndroidViewModel(app) {
+    private val prefs = App.prefs
+    private val repo = App.repo
+    private val updates = App.updates
+
+    private val snapshots = MutableStateFlow<Map<String, SourceSnapshot>>(emptyMap())
+    private val loading = MutableStateFlow<Set<String>>(emptySet())
+    private val results = MutableStateFlow<Map<String, TestResult>>(emptyMap())
+
+    private val _state = MutableStateFlow(UiState(settings = prefs.settings, selectedId = prefs.selectedNodeId))
+    val state: StateFlow<UiState> = _state.asStateFlow()
+
+    val vpnState = VpnBus.state.asStateFlow()
+    val traffic = VpnBus.traffic.asStateFlow()
+    val speedHistory = VpnBus.speedHistory.asStateFlow()
+
+    private val _events = MutableSharedFlow<UiEvent>(extraBufferCapacity = 4)
+    val events = _events.asSharedFlow()
+
+    private var pendingNode: ProxyNode? = null
+    private var testJob: Job? = null
+    // пока идёт проверка, порядок списка не меняется, чтобы строки не прыгали
+    @Volatile private var testing = false
+
+    // запросы на пересчёт списка склеиваются, сам пересчёт идёт в фоне
+    private val rebuildRequests = Channel<Unit>(Channel.CONFLATED)
+
+    init {
+        viewModelScope.launch(Dispatchers.Default) {
+            for (request in rebuildRequests) {
+                rebuildLocked()
+                delay(REBUILD_GAP_MS)
+            }
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            val ids = fetchTargets(includeDisabled = true).map { it.first } + ProxyNode.MANUAL_SOURCE
+            snapshots.value = ids.mapNotNull { id -> repo.loadCached(id)?.let { id to it } }.toMap()
+            rebuild()
+            val stale = fetchTargets().any { (id, _) ->
+                val snap = snapshots.value[id]
+                snap == null || System.currentTimeMillis() - snap.updatedAt > STALE_MS
+            }
+            if (stale) refreshAll()
+        }
+        viewModelScope.launch {
+            VpnBus.failedChecks.collect { failures ->
+                if (failures >= 3 && prefs.settings.autoSwitch) switchAwayFromDeadNode()
+            }
+        }
+        viewModelScope.launch {
+            VpnBus.state.collect { if (it is VpnState.Failed) toast(it.message) }
+        }
+        // тихая проверка обновлений при запуске, не чаще раза в 6 часов
+        if (prefs.settings.autoUpdates && System.currentTimeMillis() - prefs.lastUpdateCheck > UPDATE_CHECK_GAP_MS) {
+            checkUpdates(manual = false)
+        }
+    }
+
+    // ---------- обновления ----------
+
+    fun checkUpdates(manual: Boolean) {
+        if (_state.value.updateStage is UpdateStage.Checking || _state.value.updateStage is UpdateStage.Downloading) return
+        viewModelScope.launch {
+            if (manual) _state.update { it.copy(updateStage = UpdateStage.Checking) }
+            val result = updates.check(viaTunnel = VpnBus.state.value is VpnState.Connected)
+            result.onSuccess { prefs.lastUpdateCheck = System.currentTimeMillis() }
+            val info = result.getOrNull()
+            _state.update { it.copy(update = info, updateStage = UpdateStage.Idle, showUpdate = it.showUpdate || (manual && info != null)) }
+            when {
+                !manual -> Unit
+                result.isFailure -> toast("Не удалось проверить обновления: сервер недоступен")
+                info == null -> toast("У вас последняя версия")
+            }
+        }
+    }
+
+    fun openUpdate() {
+        if (_state.value.update != null) _state.update { it.copy(showUpdate = true) } else checkUpdates(manual = true)
+    }
+
+    fun dismissUpdate() = _state.update { it.copy(showUpdate = false, updateStage = UpdateStage.Idle) }
+
+    // скачать, проверить и отдать системному установщику
+    fun installUpdate() {
+        val info = _state.value.update ?: return
+        if (_state.value.updateStage is UpdateStage.Downloading) return
+        if (!updates.canInstall()) {
+            toast("Разрешите Фарватеру устанавливать обновления и нажмите «Обновить» ещё раз")
+            _events.tryEmit(UiEvent.StartActivity(updates.installPermissionIntent()))
+            return
+        }
+        viewModelScope.launch {
+            _state.update { it.copy(updateStage = UpdateStage.Downloading(0f)) }
+            var last = 0f
+            val file = updates.download(info, viaTunnel = VpnBus.state.value is VpnState.Connected) { p ->
+                if (p - last >= 0.01f || p >= 1f) {
+                    last = p
+                    _state.update { it.copy(updateStage = UpdateStage.Downloading(p)) }
+                }
+            }
+            file.onSuccess { apk ->
+                _state.update { it.copy(updateStage = UpdateStage.Idle) }
+                _events.tryEmit(UiEvent.StartActivity(updates.installIntent(apk)))
+            }.onFailure { e ->
+                _state.update { it.copy(updateStage = UpdateStage.Failed(e.message ?: "ошибка загрузки")) }
+            }
+        }
+    }
+
+    fun refreshAll() {
+        viewModelScope.launch {
+            _state.update { it.copy(refreshing = true) }
+            val viaTunnel = VpnBus.state.value is VpnState.Connected
+            fetchTargets().map { (id, urls) -> async(Dispatchers.IO) { refreshOne(id, urls, viaTunnel) } }.awaitAll()
+            _state.update { it.copy(refreshing = false) }
+            val loaded = fetchTargets().count { snapshots.value[it.first]?.error == null }
+            if (loaded == 0 && fetchTargets().isNotEmpty() && !viaTunnel) {
+                toast("Источники недоступны напрямую. Подключитесь к узлу из кэша — обновление пойдёт через туннель.")
+            }
+        }
+    }
+
+    private suspend fun refreshOne(id: String, urls: List<String>, viaTunnel: Boolean) {
+        loading.update { it + id }
+        rebuild()
+        val snapshot = repo.fetch(id, urls, viaTunnel, deviceHeaders(id))
+        snapshots.update { it + (id to snapshot) }
+        loading.update { it - id }
+        rebuild()
+    }
+
+    // заголовки устройства как у Happ и v2RayTun: только для своих подписок и если пользователь не выключил
+    private fun deviceHeaders(sourceId: String): Map<String, String> {
+        if (sourceId in communityIds || !prefs.settings.sendHwid) return emptyMap()
+        // в заголовках допустим только ASCII, иначе запрос не уйдёт
+        fun ascii(v: String?) = v.orEmpty().filter { it in ' '..'~' }.trim().ifEmpty { "unknown" }
+        return mapOf(
+            "x-hwid" to prefs.hwid,
+            "x-device-os" to "Android",
+            "x-ver-os" to ascii(android.os.Build.VERSION.RELEASE),
+            "x-device-model" to ascii(android.os.Build.MODEL),
+        )
+    }
+
+    val hwid: String get() = prefs.hwid
+
+    // обновить одну подписку: из каталога или свою
+    fun refreshSource(id: String) {
+        val urls = BuiltInCatalog.byId(id)?.mirrors ?: prefs.userSources.firstOrNull { it.id == id }?.let { listOf(it.url) } ?: return
+        viewModelScope.launch { refreshOne(id, urls, VpnBus.state.value is VpnState.Connected) }
+    }
+
+    fun setSourceEnabled(id: String, enabled: Boolean) {
+        prefs.enabledSources = if (enabled) prefs.enabledSources + id else prefs.enabledSources - id
+        rebuild()
+        if (enabled && snapshots.value[id] == null) {
+            BuiltInCatalog.byId(id)?.let { src ->
+                viewModelScope.launch { refreshOne(id, src.mirrors, VpnBus.state.value is VpnState.Connected) }
+            }
+        }
+    }
+
+    fun addSubscription(url: String) {
+        val clean = url.trim()
+        if (!clean.startsWith("http://") && !clean.startsWith("https://")) {
+            toast("Это не ссылка на подписку: нужен адрес, начинающийся с https://")
+            return
+        }
+        if (prefs.userSources.any { it.url == clean }) {
+            toast("Эта подписка уже добавлена")
+            return
+        }
+        val source = UserSource(id = "user-" + shortHash(clean), url = clean, title = hostOf(clean))
+        prefs.userSources = prefs.userSources + source
+        rebuild()
+        viewModelScope.launch { refreshOne(source.id, listOf(clean), VpnBus.state.value is VpnState.Connected) }
+    }
+
+    fun removeUserSource(id: String) {
+        prefs.userSources = prefs.userSources.filterNot { it.id == id }
+        repo.deleteCache(id)
+        snapshots.update { it - id }
+        rebuild()
+    }
+
+    // импорт из буфера или диплинка
+    fun importText(text: String) {
+        val trimmed = text.trim()
+        if (trimmed.isEmpty()) {
+            toast("Буфер обмена пуст")
+            return
+        }
+        if (trimmed.lines().size == 1 && (trimmed.startsWith("https://") || trimmed.startsWith("http://"))) {
+            addSubscription(trimmed)
+            return
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            val parsed = SubscriptionParser.parse(trimmed, ProxyNode.MANUAL_SOURCE)
+            if (parsed.nodes.isEmpty()) {
+                toast("Не нашёл ссылок vless://, vmess://, trojan:// или ss://")
+                return@launch
+            }
+            val added = repo.appendManual(parsed.nodes)
+            snapshots.update { it + (ProxyNode.MANUAL_SOURCE to repo.loadManual()) }
+            rebuild()
+            toast(if (added > 0) "Добавлено узлов: $added" else "Эти узлы уже есть")
+        }
+    }
+
+    fun requestImport(text: String) = _state.update { it.copy(pendingImport = text) }
+    fun confirmImport() {
+        val text = _state.value.pendingImport ?: return
+        _state.update { it.copy(pendingImport = null) }
+        importText(text)
+    }
+    fun dismissImport() = _state.update { it.copy(pendingImport = null) }
+
+    fun deleteManualNode(node: ProxyNode) {
+        if (node.sourceId != ProxyNode.MANUAL_SOURCE) return
+        repo.removeManual(node.id)
+        snapshots.update { it + (ProxyNode.MANUAL_SOURCE to repo.loadManual()) }
+        rebuild()
+    }
+
+    fun testAll(onFinished: (() -> Unit)? = null) {
+        if (testJob?.isActive == true) return
+        val nodes = _state.value.nodes
+        if (nodes.isEmpty()) {
+            toast("Список пуст — включите источники или добавьте подписку")
+            return
+        }
+        val settings = prefs.settings
+        testing = true
+        testJob = viewModelScope.launch {
+            var done = 0
+            var alive = 0
+            var lastFlush = 0L
+            val pending = HashMap<String, TestResult>()
+            // результаты копятся пачкой и попадают в список несколько раз в секунду
+            fun flush() {
+                if (pending.isNotEmpty()) {
+                    val batch = HashMap(pending)
+                    pending.clear()
+                    results.update { it + batch }
+                }
+                _state.update { it.copy(progress = TestProgress(done, nodes.size, alive)) }
+                rebuild()
+            }
+            _state.update { it.copy(progress = TestProgress(0, nodes.size, 0)) }
+            try {
+                NodeTester.testAll(nodes, settings.testUrl, settings.concurrency).collect { r ->
+                    done++
+                    if (r.alive) alive++
+                    pending[r.nodeId] = r
+                    val now = System.nanoTime() / 1_000_000
+                    if (now - lastFlush >= FLUSH_MS) {
+                        lastFlush = now
+                        flush()
+                    }
+                }
+            } finally {
+                testing = false
+                flush()
+            }
+            rebuildNow()
+            _state.update { it.copy(progress = null) }
+            onFinished?.invoke()
+        }
+    }
+
+    fun cancelTest() {
+        testJob?.cancel()
+        _state.update { it.copy(progress = null) }
+    }
+
+    // проверяет всё и подключается к лучшему узлу
+    fun findWorking() {
+        testAll {
+            val best = bestNode()
+            if (best == null) {
+                toast("Рабочих узлов не нашлось. Обновите источники через Wi-Fi или добавьте свою подписку.")
+            } else {
+                setSelected(best.id)
+                connect(best)
+            }
+        }
+    }
+
+    private fun bestNode(exclude: String? = null): ProxyNode? =
+        _state.value.nodes.firstOrNull { it.id != exclude && results.value[it.id]?.alive == true }
+
+    private suspend fun switchAwayFromDeadNode() {
+        val current = (VpnBus.state.value as? VpnState.Connected)?.node ?: return
+        results.update { it + (current.id to TestResult(current.id, -1, TestMethod.REAL)) }
+        rebuildNow()
+        val next = bestNode(exclude = current.id) ?: return toast("Узел не отвечает, а запасных живых нет. Запустите поиск.")
+        toast("Узел перестал отвечать — переключаюсь на «${next.name}»")
+        setSelected(next.id)
+        connect(next)
+    }
+
+    fun toggleConnection() {
+        when (VpnBus.state.value) {
+            is VpnState.Connected, is VpnState.Connecting -> FarvaterVpnService.stop(getApplication())
+            else -> {
+                val node = _state.value.selectedNode ?: bestNode() ?: _state.value.nodes.firstOrNull()
+                if (node == null) toast("Нет узлов. Включите источники или добавьте подписку.") else connect(node)
+            }
+        }
+    }
+
+    fun select(node: ProxyNode) {
+        setSelected(node.id)
+        val vpn = VpnBus.state.value
+        if (vpn is VpnState.Connected && vpn.node.id != node.id) connect(node)
+    }
+
+    private fun setSelected(id: String) {
+        prefs.selectedNodeId = id
+        _state.update { it.copy(selectedId = id) }
+    }
+
+    private fun connect(node: ProxyNode) {
+        val permission = VpnService.prepare(getApplication())
+        if (permission != null) {
+            pendingNode = node
+            _events.tryEmit(UiEvent.RequestVpnPermission(permission))
+        } else {
+            FarvaterVpnService.start(getApplication(), node)
+        }
+    }
+
+    fun onVpnPermissionResult(granted: Boolean) {
+        val node = pendingNode
+        pendingNode = null
+        if (granted && node != null) FarvaterVpnService.start(getApplication(), node)
+        else if (!granted) toast("Без разрешения на VPN подключиться нельзя")
+    }
+
+    fun updateSettings(transform: (AppSettings) -> AppSettings) {
+        prefs.settings = transform(prefs.settings)
+        rebuild()
+    }
+
+    fun finishOnboarding(enableCommunity: Boolean) {
+        updateSettings {
+            it.copy(onboardingDone = true, communityEnabled = enableCommunity, acceptedLegalVersion = LEGAL_VERSION)
+        }
+        if (enableCommunity) refreshAll()
+    }
+
+    fun acceptLegal() = updateSettings { it.copy(acceptedLegalVersion = LEGAL_VERSION) }
+
+    fun consumeMessage() = _state.update { it.copy(message = null) }
+
+    fun showMessage(text: String) = toast(text)
+
+    private fun toast(text: String) = _state.update { it.copy(message = text) }
+
+    private fun fetchTargets(includeDisabled: Boolean = false): List<Pair<String, List<String>>> = buildList {
+        val settings = prefs.settings
+        val enabled = prefs.enabledSources
+        BuiltInCatalog.sources
+            .filter { includeDisabled || (settings.communityEnabled && it.id in enabled) }
+            .forEach { add(it.id to it.mirrors) }
+        prefs.userSources.forEach { add(it.id to listOf(it.url)) }
+    }
+
+    private fun rebuild() {
+        rebuildRequests.trySend(Unit)
+    }
+
+    private suspend fun rebuildNow() = withContext(Dispatchers.Default) { rebuildLocked() }
+
+    @Synchronized
+    private fun rebuildLocked() {
+        val settings = prefs.settings
+        val enabled = prefs.enabledSources
+        val snaps = snapshots.value
+        val busy = loading.value
+
+        // безопасный режим фильтрует только публичные подписки: свои узлы выбирает пользователь
+        fun hideInsecure(node: ProxyNode) = settings.safeMode && node.isInsecure && node.sourceId in communityIds
+        fun shown(snap: SourceSnapshot?) = snap?.nodes?.count { XrayConfigBuilder.isSupported(it) && !hideInsecure(it) } ?: 0
+        fun hiddenNote(snap: SourceSnapshot?): String? {
+            snap ?: return null
+            val parts = buildList {
+                snap.nodes.count { XrayConfigBuilder.isSupported(it) && hideInsecure(it) }.takeIf { it > 0 }?.let { add("$it небезопасных") }
+                snap.nodes.count { !XrayConfigBuilder.isSupported(it) }.takeIf { it > 0 }?.let { add("$it Hysteria2") }
+                snap.skipped.forEach { (scheme, n) -> add("$n $scheme") }
+            }
+            return parts.takeIf { it.isNotEmpty() }?.joinToString(", ")
+        }
+        val community = BuiltInCatalog.sources.map { s ->
+            val snap = snaps[s.id]
+            SourceUi(
+                id = s.id, title = s.title, author = s.author, license = s.license, homepage = s.homepage,
+                description = s.description, community = true,
+                enabled = settings.communityEnabled && s.id in enabled,
+                nodeCount = shown(snap), updatedAt = snap?.updatedAt ?: 0,
+                error = snap?.error, loading = s.id in busy, hidden = hiddenNote(snap),
+            )
+        }
+        val own = prefs.userSources.map { u ->
+            val snap = snaps[u.id]
+            SourceUi(
+                id = u.id, title = snap?.title ?: u.title, author = "ваша подписка", license = "",
+                homepage = u.url, description = u.url, community = false, enabled = true,
+                nodeCount = shown(snap), updatedAt = snap?.updatedAt ?: 0,
+                error = snap?.error, loading = u.id in busy, hidden = hiddenNote(snap),
+            )
+        }
+        val sources = community + own
+        val active = sources.filter { it.enabled }.map { it.id }.toSet() + ProxyNode.MANUAL_SOURCE
+        val activeSnaps = snaps.filterKeys { it in active }.values
+        // Hysteria2 не показываем
+        val supported = activeSnaps.flatMap { it.nodes }.filter(XrayConfigBuilder::isSupported).distinctBy { it.id }
+        val nodes = supported.filterNot(::hideInsecure)
+        val res = results.value
+        val titles = sources.associate { it.id to it.title }
+        val announcements = activeSnaps.mapNotNull { snap ->
+            val text = (listOfNotNull(snap.announce) + snap.notices).distinct().joinToString("\n")
+            if (text.isBlank()) null
+            else Announcement(if (snap.sourceId == ProxyNode.MANUAL_SOURCE) "Вручную" else titles[snap.sourceId] ?: snap.sourceId, text)
+        }
+
+        _state.update {
+            it.copy(
+                settings = settings,
+                sources = sources,
+                nodes = if (testing) keepOrder(it.nodes, nodes) else sortNodes(nodes, res),
+                hiddenInsecure = supported.size - nodes.size,
+                results = res,
+                announcements = announcements,
+            )
+        }
+    }
+
+    private fun keepOrder(previous: List<ProxyNode>, nodes: List<ProxyNode>): List<ProxyNode> {
+        val index = HashMap<String, Int>(previous.size * 2)
+        previous.forEachIndexed { i, n -> index[n.id] = i }
+        return nodes.sortedBy { index[it.id] ?: Int.MAX_VALUE }
+    }
+
+    private fun sortNodes(nodes: List<ProxyNode>, res: Map<String, TestResult>): List<ProxyNode> =
+        nodes.sortedWith(
+            compareBy<ProxyNode>(
+                { node ->
+                    val r = res[node.id]
+                    when {
+                        r == null -> 2
+                        !r.alive -> 3
+                        r.method == TestMethod.REAL -> 0
+                        else -> 1
+                    }
+                },
+                { res[it.id]?.delayMs ?: Long.MAX_VALUE },
+            ),
+        )
+
+    private fun shortHash(s: String) =
+        MessageDigest.getInstance("SHA-1").digest(s.toByteArray()).take(5).joinToString("") { "%02x".format(it) }
+
+    private fun hostOf(url: String) = url.substringAfter("://").substringBefore('/').ifBlank { "Подписка" }
+
+    companion object {
+        private val communityIds = BuiltInCatalog.sources.map { it.id }.toSet()
+        private const val STALE_MS = 6 * 60 * 60 * 1000L
+        private const val UPDATE_CHECK_GAP_MS = 6 * 60 * 60 * 1000L
+        private const val REBUILD_GAP_MS = 150L
+        private const val FLUSH_MS = 300L
+    }
+}
