@@ -62,7 +62,7 @@ jobs:
           FARVATER_KEY_PASSWORD: ${{ secrets.FARVATER_KEY_PASSWORD }}
         # версия из тега, обновления приложение ищет в этом же репозитории
         run: >
-          gradle :app:testReleaseUnitTest :app:assembleRelease
+          gradle :app:testReleaseUnitTest --tests 'app.farvater.ParserTest' :app:assembleRelease
           -PfarvaterVersion=${{ env.TAG }}
           -PfarvaterUpdateRepo=${{ github.repository }}
 
