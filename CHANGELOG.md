@@ -4,12 +4,6 @@
 
 ## [Не выпущено]
 
-## [1.0.1] — 2026-10-05
-
-### Изменено
-
-- Обновлены условия использования.
-
 ## [1.0.0] — 2026-10-05
 
 Первый выпуск.
@@ -32,6 +26,5 @@
 - Интерфейс в стиле iOS, светлая и тёмная темы.
 - Импорт подписки по ссылке `farvater://import`.
 
-[Не выпущено]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.1...HEAD
-[1.0.1]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.0...v1.0.1
+[Не выпущено]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/lutzashl290788-cell/farvater/releases/tag/v1.0.0
