@@ -1,0 +1,57 @@
+name: Ошибка
+description: Что-то работает не так, как должно
+labels: ["ошибка"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Не публикуйте ссылки на свои подписки, ключи узлов и HWID: это открытый репозиторий.
+  - type: input
+    id: version
+    attributes:
+      label: Версия Фарватера
+      description: Настройки, раздел «О приложении»
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Телефон и версия Android
+      placeholder: "Pixel 7, Android 15"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Где ошибка
+      options:
+        - Подключение
+        - Подписки
+        - Проверка узлов
+        - Обновления
+        - Интерфейс
+        - Другое
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Как повторить
+      placeholder: |
+        1. Открыть вкладку «Источники»
+        2. Нажать «Добавить подписку»
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Что ожидалось и что произошло
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Дополнительно
+      description: Скриншоты, протокол и транспорт узла (без адреса и ключей), тип подписки

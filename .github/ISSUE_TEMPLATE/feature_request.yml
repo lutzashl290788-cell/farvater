@@ -1,0 +1,21 @@
+name: Предложение
+description: Идея новой функции или улучшения
+labels: ["предложение"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Какую задачу нужно решить
+      description: Опишите ситуацию, в которой вам не хватает этой функции
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Как это могло бы работать
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Что вы пробовали вместо этого
