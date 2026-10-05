@@ -76,7 +76,7 @@ jobs:
           done
           (cd dist && sha256sum *.apk > SHA256SUMS.txt)
           APKSIGNER=$(ls -d "$ANDROID_SDK_ROOT"/build-tools/*/ | sort -V | tail -1)apksigner
-          CERT=$("$APKSIGNER" verify --print-certs dist/*universal*.apk | grep -m1 'SHA-256' | awk -F': ' '{print $2}')
+          CERT=$("$APKSIGNER" verify --print-certs dist/*universal*.apk | grep -m1 'SHA-256' | awk '{print toupper($NF)}' | sed 's/../&:/g; s/:$//')
           python3 scripts/make-update-json.py "$VERSION" "$GITHUB_REPOSITORY" "$TAG" release-notes.txt dist > dist/update.json
           cat dist/update.json
           {
