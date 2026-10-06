@@ -35,7 +35,7 @@ class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker
     }
 
     companion object {
-        const val CHANNEL = "updates"
+        const val CHANNEL = "updates_alert"
         const val EXTRA_OPEN_UPDATE = "app.farvater.OPEN_UPDATE"
         private const val NOTIFICATION_ID = 21
 
@@ -65,7 +65,7 @@ class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker
                 .setContentTitle(if (info.critical) "Важное обновление Фарватера ${info.versionName}" else "Доступен Фарватер ${info.versionName}")
                 .setContentText(text.lineSequence().first())
                 .setStyle(NotificationCompat.BigTextStyle().bigText(text))
-                .setPriority(if (info.critical) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentIntent(open)
                 .setAutoCancel(true)
                 .build()

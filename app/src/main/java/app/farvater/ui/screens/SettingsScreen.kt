@@ -212,7 +212,7 @@ fun SettingsScreen(
                 )
             }
 
-            IosSection(header = "Защита", footer = "Постоянный VPN и блокировка трафика без VPN включаются в настройках Android.") {
+            IosSection(header = "Защита") {
                 var unrestricted by remember { mutableStateOf(context.isBatteryUnrestricted()) }
                 LifecycleResumeEffect(Unit) {
                     unrestricted = context.isBatteryUnrestricted()
@@ -226,14 +226,6 @@ fun SettingsScreen(
                     value = if (unrestricted) "разрешена" else "ограничена",
                     chevron = !unrestricted,
                     onClick = { runCatching { context.startActivity(context.batteryIntent(unrestricted)) } },
-                )
-                IosDivider(start = divider)
-                IosRow(
-                    title = "Постоянный VPN",
-                    icon = Icons.Rounded.Shield,
-                    iconTint = c.indigo,
-                    chevron = true,
-                    onClick = { runCatching { context.startActivity(Intent(Settings.ACTION_VPN_SETTINGS)) } },
                 )
             }
 

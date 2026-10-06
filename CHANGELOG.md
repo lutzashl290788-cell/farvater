@@ -4,6 +4,16 @@
 
 ## [Не выпущено]
 
+## [1.0.4] — 2026-10-06
+
+### Изменено
+
+- Уведомление о новой версии всплывает поверх экрана: канал «Обновления» получил высокую важность.
+
+### Удалено
+
+- Пункт «Постоянный VPN» в разделе «Защита».
+
 ## [1.0.3] — 2026-10-06
 
 ### Добавлено
@@ -55,7 +65,8 @@
 - Интерфейс в стиле iOS, светлая и тёмная темы.
 - Импорт подписки по ссылке `farvater://import`.
 
-[Не выпущено]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.3...HEAD
+[Не выпущено]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.4...HEAD
+[1.0.4]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.0...v1.0.1
