@@ -3,13 +3,17 @@ package app.farvater.vpn
 import android.app.Notification
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.graphics.drawable.Icon
 import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
+import android.os.PowerManager
+import androidx.core.content.ContextCompat
 import app.farvater.App
 import app.farvater.MainActivity
 import app.farvater.R
@@ -24,6 +28,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
@@ -40,6 +46,8 @@ class FarvaterVpnService : VpnService() {
         const val CHANNEL = "vpn"
         private const val NOTIFICATION_ID = 7
         private const val MTU = 8500
+        // как часто проверять, отвечает ли узел, в секундах
+        private const val PROBE_EVERY = 60
 
         fun start(context: Context, node: ProxyNode) {
             App.prefs.lastNode = node
@@ -54,6 +62,26 @@ class FarvaterVpnService : VpnService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var tun: ParcelFileDescriptor? = null
     private var monitor: Job? = null
+    private var lastNotificationText: String? = null
+
+    // экран выключен: статистику никто не видит, а лишние запросы будят радио и садят батарею
+    private val screenOn = MutableStateFlow(true)
+    private val screenReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            screenOn.value = intent.action != Intent.ACTION_SCREEN_OFF
+        }
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        screenOn.value = getSystemService(PowerManager::class.java).isInteractive
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_SCREEN_OFF)
+        }
+        // эти события присылает только система, поэтому приёмник можно не закрывать
+        ContextCompat.registerReceiver(this, screenReceiver, filter, ContextCompat.RECEIVER_EXPORTED)
+    }
 
     private val probeClient by lazy {
         OkHttpClient.Builder()
@@ -118,6 +146,15 @@ class FarvaterVpnService : VpnService() {
         var failures = 0
         val history = ArrayDeque<Long>()
         while (scope.isActive) {
+            if (!screenOn.value) {
+                VpnBus.traffic.value = VpnBus.traffic.value.copy(upBps = 0, downBps = 0)
+                // спим до включения экрана, туннель при этом работает как обычно
+                screenOn.first { it }
+                lastTx = -1L
+                lastRx = -1L
+                // после включения экрана узел проверяется почти сразу
+                tick = PROBE_EVERY - 3
+            }
             delay(1000)
             tick++
             TunBridge.stats()?.takeIf { it.size >= 4 }?.let { s ->
@@ -136,7 +173,7 @@ class FarvaterVpnService : VpnService() {
                 val t = VpnBus.traffic.value
                 updateNotification(node.name, "↓ ${formatSpeed(t.downBps)}   ↑ ${formatSpeed(t.upBps)}")
             }
-            if (tick % 45 == 0) {
+            if (tick % PROBE_EVERY == 0) {
                 failures = if (probe()) 0 else failures + 1
                 VpnBus.failedChecks.value = failures
             }
@@ -177,6 +214,7 @@ class FarvaterVpnService : VpnService() {
     override fun onRevoke() = stopVpn()
 
     override fun onDestroy() {
+        runCatching { unregisterReceiver(screenReceiver) }
         synchronized(this) { teardown() }
         scope.cancel()
         if (VpnBus.state.value !is VpnState.Failed) VpnBus.state.value = VpnState.Idle
@@ -201,11 +239,16 @@ class FarvaterVpnService : VpnService() {
             .build()
     }
 
+    // уведомление перерисовывается, только если текст изменился
     private fun updateNotification(title: String, text: String) {
+        val key = "$title\n$text"
+        if (key == lastNotificationText) return
+        lastNotificationText = key
         getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, notification(title, text))
     }
 
     private fun startForegroundCompat(n: Notification) {
+        lastNotificationText = null
         if (Build.VERSION.SDK_INT >= 34) {
             startForeground(NOTIFICATION_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         } else {

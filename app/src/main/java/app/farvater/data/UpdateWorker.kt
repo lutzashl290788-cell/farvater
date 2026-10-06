@@ -41,7 +41,12 @@ class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker
 
         fun schedule(context: Context) {
             val request = PeriodicWorkRequestBuilder<UpdateWorker>(15, TimeUnit.MINUTES)
-                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                .setConstraints(
+                    Constraints.Builder()
+                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                        .setRequiresBatteryNotLow(true)
+                        .build(),
+                )
                 .build()
             // UPDATE, чтобы новый интервал применился и после обновления приложения
             WorkManager.getInstance(context).enqueueUniquePeriodicWork("updates", ExistingPeriodicWorkPolicy.UPDATE, request)

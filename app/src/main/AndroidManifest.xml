@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- просьба не останавливать VPN в фоне -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- установка скачанного обновления -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 

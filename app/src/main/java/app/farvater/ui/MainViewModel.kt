@@ -101,11 +101,23 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val repo = App.repo
     private val updates = App.updates
 
-    private val snapshots = MutableStateFlow<Map<String, SourceSnapshot>>(emptyMap())
+    // подписки и результаты проверок живут, пока жив процесс, и не теряются при пересоздании экрана
+    private val snapshots = cachedSnapshots
     private val loading = MutableStateFlow<Set<String>>(emptySet())
-    private val results = MutableStateFlow<Map<String, TestResult>>(emptyMap())
+    private val results = cachedResults
 
-    private val _state = MutableStateFlow(UiState(settings = prefs.settings, selectedId = prefs.selectedNodeId))
+    private val _state = MutableStateFlow(
+        cachedState?.copy(
+            settings = prefs.settings,
+            selectedId = prefs.selectedNodeId,
+            progress = null,
+            refreshing = false,
+            message = null,
+            pendingImport = null,
+            updateStage = UpdateStage.Idle,
+            showUpdate = false,
+        ) ?: UiState(settings = prefs.settings, selectedId = prefs.selectedNodeId),
+    )
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     val vpnState = VpnBus.state.asStateFlow()
@@ -130,9 +142,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 delay(REBUILD_GAP_MS)
             }
         }
+        viewModelScope.launch { _state.collect { cachedState = it } }
         viewModelScope.launch(Dispatchers.IO) {
-            val ids = fetchTargets(includeDisabled = true).map { it.first } + ProxyNode.MANUAL_SOURCE
-            snapshots.value = ids.mapNotNull { id -> repo.loadCached(id)?.let { id to it } }.toMap()
+            // с диска читаем, только если процесс запущен заново
+            if (snapshots.value.isEmpty()) {
+                val ids = fetchTargets(includeDisabled = true).map { it.first } + ProxyNode.MANUAL_SOURCE
+                snapshots.value = ids.mapNotNull { id -> repo.loadCached(id)?.let { id to it } }.toMap()
+            }
             rebuild()
             val stale = fetchTargets().any { (id, _) ->
                 val snap = snapshots.value[id]
@@ -567,5 +583,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         private const val UPDATE_CHECK_GAP_MS = 5 * 60 * 1000L
         private const val REBUILD_GAP_MS = 150L
         private const val FLUSH_MS = 300L
+
+        private val cachedSnapshots = MutableStateFlow<Map<String, SourceSnapshot>>(emptyMap())
+        private val cachedResults = MutableStateFlow<Map<String, TestResult>>(emptyMap())
+        @Volatile private var cachedState: UiState? = null
     }
 }

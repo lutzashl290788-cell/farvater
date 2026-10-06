@@ -55,6 +55,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 
 enum class BeaconMode { Idle, Searching, Connecting, Connected, Error }
 
@@ -110,9 +111,18 @@ fun BeaconButton(
         animationSpec = tween(450),
         label = "beam",
     )
+    // после подключения круги расходятся несколько раз и затихают, чтобы экран не перерисовывался без конца
+    var calm by remember { mutableStateOf(false) }
+    LaunchedEffect(mode) {
+        calm = false
+        if (mode == BeaconMode.Connected) {
+            delay(PULSE_MS * 3L)
+            calm = true
+        }
+    }
     val ringStrength by animateFloatAsState(
         targetValue = when (mode) {
-            BeaconMode.Connected -> 1f
+            BeaconMode.Connected -> if (calm) 0f else 1f
             BeaconMode.Idle -> 0f
             else -> 0.5f
         },
@@ -122,7 +132,7 @@ fun BeaconButton(
     // бесконечные анимации крутятся, только пока их видно
     val spinning = mode == BeaconMode.Searching || mode == BeaconMode.Connecting || beamStrength > 0.01f
     val angle by loop(spinning, 1800, LinearEasing, "angle")
-    val pulse by loop(ringStrength > 0.01f, 2600, FastOutSlowInEasing, "pulse")
+    val pulse by loop(ringStrength > 0.01f, PULSE_MS, FastOutSlowInEasing, "pulse")
 
     val description = when (mode) {
         BeaconMode.Idle -> "Подключиться"
@@ -224,6 +234,8 @@ fun BeaconButton(
         }
     }
 }
+
+private const val PULSE_MS = 2600
 
 // повторяющееся значение от 0 до 1, без анимации возвращает 0
 @Composable

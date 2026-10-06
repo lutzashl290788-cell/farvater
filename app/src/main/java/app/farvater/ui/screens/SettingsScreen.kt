@@ -1,6 +1,9 @@
 package app.farvater.ui.screens
 
+import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import android.os.PowerManager
 import android.provider.Settings
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
@@ -26,6 +29,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountBalance
+import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.Autorenew
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.Description
@@ -50,8 +54,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,6 +71,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import app.farvater.BuildConfig
@@ -206,6 +213,21 @@ fun SettingsScreen(
             }
 
             IosSection(header = "Защита", footer = "Постоянный VPN и блокировка трафика без VPN включаются в настройках Android.") {
+                var unrestricted by remember { mutableStateOf(context.isBatteryUnrestricted()) }
+                LifecycleResumeEffect(Unit) {
+                    unrestricted = context.isBatteryUnrestricted()
+                    onPauseOrDispose { }
+                }
+                IosRow(
+                    title = "Работа в фоне",
+                    subtitle = "Чтобы Android не останавливал VPN, когда приложение закрыто",
+                    icon = Icons.Rounded.BatteryChargingFull,
+                    iconTint = c.green,
+                    value = if (unrestricted) "разрешена" else "ограничена",
+                    chevron = !unrestricted,
+                    onClick = { runCatching { context.startActivity(context.batteryIntent(unrestricted)) } },
+                )
+                IosDivider(start = divider)
                 IosRow(
                     title = "Постоянный VPN",
                     icon = Icons.Rounded.Shield,
@@ -391,3 +413,13 @@ private fun Feature(icon: ImageVector, tint: Color, title: String, text: String)
         }
     }
 }
+
+// система не ограничивает Фарватер в фоне
+private fun Context.isBatteryUnrestricted(): Boolean =
+    getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(packageName)
+
+// без ограничений: открыть общий список, иначе спросить разрешение для Фарватера
+@Suppress("BatteryLife")
+private fun Context.batteryIntent(unrestricted: Boolean): Intent =
+    if (unrestricted) Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+    else Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName"))
