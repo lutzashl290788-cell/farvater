@@ -2,7 +2,8 @@ name: Проверочная сборка
 
 on:
   push:
-    branches: ["**"]
+    # ветку релиза собирает и проверяет сам релиз
+    branches: ["**", "!release/**"]
   pull_request:
   workflow_dispatch:
 
@@ -29,12 +30,24 @@ jobs:
           # пакета tools больше нет в SDK
           packages: platform-tools
 
+      # ядро и мост меняются только вместе со скриптом сборки, поэтому их можно не собирать каждый раз
+      - name: Кэш ядра и TUN-моста
+        id: natives
+        uses: actions/cache@v4
+        with:
+          path: |
+            app/libs/libv2ray.aar
+            app/src/main/jniLibs
+          key: natives-${{ env.NDK_VERSION }}-${{ hashFiles('scripts/fetch-natives.sh') }}
+
       - name: NDK
+        if: steps.natives.outputs.cache-hit != 'true'
         run: |
           sdkmanager "ndk;${NDK_VERSION}"
           echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
 
       - name: Ядро и TUN-мост
+        if: steps.natives.outputs.cache-hit != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: ./scripts/fetch-natives.sh
@@ -84,12 +97,24 @@ jobs:
           # пакета tools больше нет в SDK
           packages: platform-tools
 
+      # ядро и мост меняются только вместе со скриптом сборки, поэтому их можно не собирать каждый раз
+      - name: Кэш ядра и TUN-моста
+        id: natives
+        uses: actions/cache@v4
+        with:
+          path: |
+            app/libs/libv2ray.aar
+            app/src/main/jniLibs
+          key: natives-${{ env.NDK_VERSION }}-${{ hashFiles('scripts/fetch-natives.sh') }}
+
       - name: NDK
+        if: steps.natives.outputs.cache-hit != 'true'
         run: |
           sdkmanager "ndk;${NDK_VERSION}"
           echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
 
       - name: Ядро и TUN-мост
+        if: steps.natives.outputs.cache-hit != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: ./scripts/fetch-natives.sh
