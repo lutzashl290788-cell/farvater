@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import datetime
+from zoneinfo import ZoneInfo
 import hashlib
 import json
 import os
@@ -34,7 +35,7 @@ for name in sorted(os.listdir(dist)):
 print(json.dumps({
     "versionCode": major * 10000 + minor * 100 + patch,
     "versionName": version,
-    "published": datetime.date.today().strftime("%d.%m.%Y"),
+    "published": datetime.datetime.now(ZoneInfo("Europe/Moscow")).strftime("%d.%m.%Y"),
     "critical": critical,
     "notes": notes,
     "assets": assets,
