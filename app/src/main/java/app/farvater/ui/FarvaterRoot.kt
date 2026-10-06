@@ -86,6 +86,9 @@ fun FarvaterRoot(vm: MainViewModel) {
                     onRemoveUserSource = vm::removeUserSource,
                     onEnableCommunity = { reopenOnboarding = true },
                     onRefreshSource = vm::refreshSource,
+                    onNetMode = vm::setNetMode,
+                    onSourceMode = vm::setSourceMode,
+                    onSourceInterval = vm::setSourceInterval,
                 )
                 Tab.Settings -> SettingsScreen(
                     settings = state.settings,

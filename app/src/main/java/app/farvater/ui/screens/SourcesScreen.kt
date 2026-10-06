@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -27,8 +28,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
+import app.farvater.core.model.NetMode
+import app.farvater.core.model.NetModeChoice
+import app.farvater.core.model.SourceMode
 import app.farvater.ui.LocalBottomInset
 import app.farvater.ui.SourceUi
 import app.farvater.ui.UiState
@@ -42,6 +45,7 @@ import app.farvater.ui.ios.IosDivider
 import app.farvater.ui.ios.IosLargeTitle
 import app.farvater.ui.ios.IosRow
 import app.farvater.ui.ios.IosSection
+import app.farvater.ui.ios.IosSegmented
 import app.farvater.ui.ios.IosSpinner
 import app.farvater.ui.ios.IosSwitch
 import app.farvater.ui.ios.IosTextField
@@ -59,12 +63,14 @@ fun SourcesScreen(
     onRemoveUserSource: (String) -> Unit,
     onEnableCommunity: () -> Unit,
     onRefreshSource: (String) -> Unit = {},
+    onNetMode: (NetModeChoice) -> Unit = {},
+    onSourceMode: (String, SourceMode) -> Unit = { _, _ -> },
+    onSourceInterval: (String, Int?) -> Unit = { _, _ -> },
 ) {
     val c = Ios.colors
     var showAdd by remember { mutableStateOf(false) }
     var removing by remember { mutableStateOf<SourceUi?>(null) }
     var menuFor by remember { mutableStateOf<SourceUi?>(null) }
-    val uri = LocalUriHandler.current
     val clipboard = LocalClipboardManager.current
     val community = state.sources.filter { it.community }
     val own = state.sources.filterNot { it.community }
@@ -109,18 +115,32 @@ fun SourcesScreen(
                 }
             }
 
+            item(key = "mode") {
+                val choices = NetModeChoice.entries
+                IosSection(header = "Режим сети", footer = modeFooter(state.settings.netMode, state.detectedMode, state.detecting)) {
+                    IosSegmented(
+                        options = listOf("Авто", "БС", "ЧС"),
+                        selected = choices.indexOf(state.settings.netMode),
+                        onSelect = { onNetMode(choices[it]) },
+                        modifier = Modifier.padding(12.dp),
+                    )
+                }
+            }
+
             if (own.isNotEmpty()) {
                 item(key = "own") {
                     IosSection(header = "Мои подписки") {
                         own.forEachIndexed { i, source ->
                             if (i > 0) IosDivider(start = 59.dp)
+                            val alpha by animateFloatAsState(if (source.inMode) 1f else 0.55f, tween(220), label = "dim")
                             IosRow(
                                 title = source.title,
                                 subtitle = statusText(source),
                                 subtitleColor = statusColor(source),
-                                subtitleLines = 3,
+                                subtitleLines = 4,
                                 icon = Icons.Rounded.Link,
                                 iconTint = c.indigo,
+                                modifier = Modifier.graphicsLayer { this.alpha = alpha },
                                 chevron = !source.loading,
                                 onClick = { menuFor = source },
                                 trailing = { if (source.loading) IosSpinner() },
@@ -160,29 +180,20 @@ fun SourcesScreen(
         IosCompactBar("Источники", visible = collapsed)
     }
 
-    menuFor?.let { source ->
-        IosAlert(
-            title = source.title,
-            message = statusText(source),
-            onDismiss = { menuFor = null },
-            actions = buildList {
-                add(AlertAction("Обновить", AlertRole.Preferred) {
-                    onRefreshSource(source.id)
-                    menuFor = null
-                })
-                if (source.community) {
-                    add(AlertAction("Страница проекта") {
-                        runCatching { uri.openUri(source.homepage) }
-                        menuFor = null
-                    })
-                } else {
-                    add(AlertAction("Удалить", AlertRole.Destructive) {
-                        removing = source
-                        menuFor = null
-                    })
-                }
-                add(AlertAction("Отмена", AlertRole.Cancel) { menuFor = null })
+    menuFor?.let { opened ->
+        // карточка показывает свежие данные подписки, а не снимок на момент открытия
+        val source = state.sources.firstOrNull { it.id == opened.id } ?: opened
+        SourceSheet(
+            source = source,
+            status = statusText(source),
+            onMode = { onSourceMode(source.id, it) },
+            onInterval = { onSourceInterval(source.id, it) },
+            onRefresh = { onRefreshSource(source.id) },
+            onRemove = {
+                removing = source
+                menuFor = null
             },
+            onClose = { menuFor = null },
         )
     }
 
@@ -222,7 +233,7 @@ fun SourcesScreen(
 @Composable
 private fun CommunityRow(source: SourceUi, onToggle: (String, Boolean) -> Unit, onOpen: () -> Unit) {
     val c = Ios.colors
-    val alpha by animateFloatAsState(if (source.enabled) 1f else 0.55f, tween(220), label = "dim")
+    val alpha by animateFloatAsState(if (source.enabled && source.inMode) 1f else 0.55f, tween(220), label = "dim")
     IosRow(
         title = source.title,
         subtitle = "${source.author} · ${source.license}\n" + statusText(source),
@@ -242,8 +253,19 @@ private fun CommunityRow(source: SourceUi, onToggle: (String, Boolean) -> Unit, 
     )
 }
 
+private fun modeFooter(choice: NetModeChoice, detected: NetMode?, detecting: Boolean): String = when (choice) {
+    NetModeChoice.WHITE -> "Работают подписки с пометкой БС."
+    NetModeChoice.BLACK -> "Работают подписки с пометкой ЧС."
+    NetModeChoice.AUTO -> when {
+        detecting && detected == null -> "Определяю, какие сейчас ограничения…"
+        detected == NetMode.WHITE -> "Сейчас белые списки: работают подписки с пометкой БС."
+        detected == NetMode.BLACK -> "Сейчас обычные блокировки: работают подписки с пометкой ЧС."
+        else -> "Режим пока не определён, работают все подписки."
+    }
+}
+
 // строка состояния источника
-private fun statusText(source: SourceUi): String = when {
+private fun statusText(source: SourceUi): String = "${modeShort(source.mode)} · обновление ${intervalLabel(source)}\n" + when {
     source.loading -> "Обновляю…"
     source.error != null && source.nodeCount > 0 -> "Из кэша: ${source.nodeCount} узлов, ${source.error}"
     source.error != null -> source.error.replaceFirstChar { it.uppercase() }

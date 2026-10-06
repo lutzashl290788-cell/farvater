@@ -2,7 +2,9 @@ package app.farvater.data
 
 import android.content.Context
 import app.farvater.core.catalog.BuiltInCatalog
+import app.farvater.core.model.NetModeChoice
 import app.farvater.core.model.ProxyNode
+import app.farvater.core.model.SourceMode
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
@@ -31,7 +33,12 @@ data class AppSettings(
     val autoUpdates: Boolean = true,
     // приложения мимо VPN, выбирает пользователь
     val bypassApps: Set<String> = emptySet(),
+    val netMode: NetModeChoice = NetModeChoice.AUTO,
 )
+
+// режим и интервал обновления подписки. intervalHours: null — авто, 0 — только вручную
+@Serializable
+data class SourceConfig(val mode: SourceMode? = null, val intervalHours: Int? = null)
 
 @Serializable
 data class UserSource(val id: String, val url: String, val title: String)
@@ -44,6 +51,7 @@ class Prefs(context: Context) {
     @Volatile private var cachedSettings: AppSettings? = null
     @Volatile private var cachedEnabled: Set<String>? = null
     @Volatile private var cachedUserSources: List<UserSource>? = null
+    @Volatile private var cachedConfigs: Map<String, SourceConfig>? = null
 
     var settings: AppSettings
         get() = cachedSettings ?: (read<AppSettings>("settings") ?: AppSettings()).also { cachedSettings = it }
@@ -52,11 +60,16 @@ class Prefs(context: Context) {
             write("settings", value)
         }
 
-    // включённые источники каталога
+    // включённые источники каталога, новые источники из обновлений включаются сами
     var enabledSources: Set<String>
-        get() = cachedEnabled
-            ?: (sp.getStringSet("enabled_sources", null)?.toSet() ?: BuiltInCatalog.sources.map { it.id }.toSet())
-                .also { cachedEnabled = it }
+        get() = cachedEnabled ?: run {
+            val all = BuiltInCatalog.sources.map { it.id }.toSet()
+            val stored = sp.getStringSet("enabled_sources", null)?.toSet() ?: return@run all
+            val seen = sp.getStringSet("catalog_seen", null)?.toSet() ?: OLD_CATALOG
+            val result = (stored + (all - seen)) intersect all
+            sp.edit().putStringSet("enabled_sources", result).putStringSet("catalog_seen", all).apply()
+            result
+        }.also { cachedEnabled = it }
         set(value) {
             cachedEnabled = value
             sp.edit().putStringSet("enabled_sources", value).apply()
@@ -68,6 +81,18 @@ class Prefs(context: Context) {
             cachedUserSources = value
             write("user_sources", value)
         }
+
+    var sourceConfigs: Map<String, SourceConfig>
+        get() = cachedConfigs ?: (read<Map<String, SourceConfig>>("source_configs") ?: emptyMap()).also { cachedConfigs = it }
+        set(value) {
+            cachedConfigs = value
+            write("source_configs", value)
+        }
+
+    // последний определённый режим сети, чтобы при запуске не ждать проверки
+    var lastNetMode: String?
+        get() = sp.getString("last_net_mode", null)
+        set(value) = sp.edit().putString("last_net_mode", value).apply()
 
     // случайный идентификатор установки для подписок с лимитом устройств, не связан с железом телефона
     val hwid: String
@@ -96,6 +121,13 @@ class Prefs(context: Context) {
     var lastNode: ProxyNode?
         get() = read<ProxyNode>("last_node")
         set(value) = write("last_node", value)
+
+    private companion object {
+        // каталог версий до 1.1.0: эти источники пользователь уже видел
+        val OLD_CATALOG = setOf(
+            "zieng2-universal", "igareck-mobile", "igareck-cidr", "rjsxrd-bypass", "rkp-whitelist", "byewhitelists2",
+        )
+    }
 
     private inline fun <reified T> read(key: String): T? =
         sp.getString(key, null)?.let { runCatching { json.decodeFromString(serializer<T>(), it) }.getOrNull() }

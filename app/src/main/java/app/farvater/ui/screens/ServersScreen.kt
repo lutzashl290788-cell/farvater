@@ -1,12 +1,14 @@
 package app.farvater.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -25,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Dns
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.Icon
@@ -40,11 +43,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import app.farvater.core.model.NetMode
 import app.farvater.core.model.ProxyNode
+import app.farvater.engine.TestResult
 import app.farvater.ui.LocalBottomInset
 import app.farvater.ui.UiState
 import app.farvater.ui.components.DelayLabel
@@ -102,6 +108,15 @@ fun ServersScreen(
         }
     }
     val alive = remember(state.nodes, state.results) { state.nodes.count { state.results[it.id]?.alive == true } }
+    // узлы по подпискам в порядке вкладки «Источники», добавленные вручную в конце
+    val groups = remember(visible, state.sources) {
+        val order = (state.sources.map { it.id } + ProxyNode.MANUAL_SOURCE).withIndex().associate { it.value to it.index }
+        visible.groupBy { it.sourceId }.entries
+            .sortedBy { order[it.key] ?: Int.MAX_VALUE }
+            .map { it.key to it.value }
+    }
+    var collapsedIds by rememberSaveable { mutableStateOf(listOf<String>()) }
+    val searching = query.isNotBlank()
 
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
@@ -110,12 +125,17 @@ fun ServersScreen(
             contentPadding = PaddingValues(bottom = 20.dp + LocalBottomInset.current),
         ) {
             item(key = "title") {
+                val modeNote = when (state.netMode) {
+                    NetMode.WHITE -> ", режим БС"
+                    NetMode.BLACK -> ", режим ЧС"
+                    null -> ""
+                }
                 IosLargeTitle(
                     "Узлы",
                     subtitle = (
                         if (state.results.isEmpty()) "${state.nodes.size} в списке, не проверены"
                         else "${state.nodes.size} в списке, отвечают $alive"
-                        ) + if (state.hiddenInsecure > 0) ", скрыто небезопасных ${state.hiddenInsecure}" else "",
+                        ) + modeNote + if (state.hiddenInsecure > 0) ", скрыто небезопасных ${state.hiddenInsecure}" else "",
                 ) {
                     if (state.progress != null) {
                         IosCircleButton(Icons.Rounded.Stop, "Остановить проверку", onCancelTest, tint = c.red)
@@ -151,32 +171,50 @@ fun ServersScreen(
                     }
                 }
             }
-            item(key = "gap") { Spacer(Modifier.height(16.dp)) }
+            item(key = "gap") { Spacer(Modifier.height(4.dp)) }
 
             if (visible.isEmpty()) {
                 item(key = "empty") { EmptyState(state.nodes.isEmpty()) }
             } else {
-                itemsIndexed(visible, key = { _, n -> n.id }, contentType = { _, _ -> "node" }) { i, node ->
-                    val shape = when {
-                        visible.size == 1 -> RoundedCornerShape(12.dp)
-                        i == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-                        i == visible.lastIndex -> RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
-                        else -> RoundedCornerShape(0.dp)
-                    }
-                    Column(
-                        Modifier
-                            .animateItem()
-                            .padding(horizontal = 16.dp)
-                            .clip(shape)
-                            .background(c.cell),
-                    ) {
-                        NodeRow(
-                            node = node,
-                            state = state,
-                            onClick = { onSelect(node) },
-                            onLongClick = { menuFor = node },
+                groups.forEach { (sourceId, nodes) ->
+                    val collapsed = !searching && sourceId in collapsedIds
+                    item(key = "group:$sourceId", contentType = "group") {
+                        GroupHeader(
+                            title = state.sourceTitle(sourceId),
+                            count = nodes.size,
+                            alive = nodes.count { state.results[it.id]?.alive == true },
+                            collapsed = collapsed,
+                            onClick = {
+                                collapsedIds = if (sourceId in collapsedIds) collapsedIds - sourceId else collapsedIds + sourceId
+                            },
+                            modifier = Modifier.animateItem(),
                         )
-                        if (i != visible.lastIndex) IosDivider(start = 68.dp)
+                    }
+                    if (!collapsed) {
+                        itemsIndexed(nodes, key = { _, n -> n.id }, contentType = { _, _ -> "node" }) { i, node ->
+                            val shape = when {
+                                nodes.size == 1 -> RoundedCornerShape(12.dp)
+                                i == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+                                i == nodes.lastIndex -> RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
+                                else -> RoundedCornerShape(0.dp)
+                            }
+                            Column(
+                                Modifier
+                                    .animateItem()
+                                    .padding(horizontal = 16.dp)
+                                    .clip(shape)
+                                    .background(c.cell),
+                            ) {
+                                NodeRow(
+                                    node = node,
+                                    result = state.results[node.id],
+                                    selected = node.id == state.selectedId,
+                                    onClick = { onSelect(node) },
+                                    onLongClick = { menuFor = node },
+                                )
+                                if (i != nodes.lastIndex) IosDivider(start = 68.dp)
+                            }
+                        }
                     }
                 }
             }
@@ -208,21 +246,46 @@ fun ServersScreen(
     }
 }
 
+// заголовок группы: название подписки, сколько узлов и сколько отвечают
 @Composable
-private fun NodeRow(node: ProxyNode, state: UiState, onClick: () -> Unit, onLongClick: () -> Unit) {
+private fun GroupHeader(title: String, count: Int, alive: Int, collapsed: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val c = Ios.colors
+    val turn by animateFloatAsState(if (collapsed) -90f else 0f, spring(dampingRatio = 0.8f, stiffness = 500f), label = "chevron")
+    Row(
+        modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(start = 32.dp, end = 24.dp, top = 18.dp, bottom = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(title.uppercase(), style = IosType.footnote, color = c.secondaryLabel, maxLines = 1, modifier = Modifier.weight(1f))
+        Text(if (alive > 0) "$alive из $count" else "$count", style = IosType.footnote, color = c.secondaryLabel)
+        Spacer(Modifier.width(4.dp))
+        Icon(
+            Icons.Rounded.KeyboardArrowDown,
+            contentDescription = if (collapsed) "Развернуть" else "Свернуть",
+            tint = c.secondaryLabel,
+            modifier = Modifier.size(18.dp).rotate(turn),
+        )
+    }
+}
+
+// строка узла получает только свои данные, поэтому при смене чужого результата не перерисовывается
+@Composable
+private fun NodeRow(node: ProxyNode, result: TestResult?, selected: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
     val c = Ios.colors
     val (flag, title) = remember(node.name) { splitFlag(node.name) }
-    val selected = node.id == state.selectedId
+    val subtitle = remember(node) { (if (node.isInsecure) "Без шифрования · " else "") + nodeSummary(node) }
     IosRow(
         title = title,
-        subtitle = (if (node.isInsecure) "Без шифрования · " else "") + nodeSummary(node) + " · " + state.sourceTitle(node.sourceId),
+        subtitle = subtitle,
         subtitleColor = if (node.isInsecure) c.red else null,
         subtitleLines = 1,
         leading = { NodeAvatar(flag, node) },
         onClick = onClick,
         onLongClick = onLongClick,
         trailing = {
-            DelayLabel(state.results[node.id])
+            DelayLabel(result)
             AnimatedVisibility(visible = selected, enter = fadeIn(), exit = fadeOut()) {
                 Row {
                     Spacer(Modifier.width(8.dp))

@@ -49,8 +49,8 @@ class FarvaterVpnService : VpnService() {
         private const val MTU = 8500
         // как часто проверять, отвечает ли узел, в секундах
         private const val PROBE_EVERY = 60
-        // как часто искать обновления, пока VPN работает
-        private const val UPDATE_GAP_MS = 15 * 60 * 1000L
+        // пока экран включён, обновления ищутся раз в минуту
+        private const val UPDATE_GAP_MS = 60 * 1000L
 
         fun start(context: Context, node: ProxyNode) {
             App.prefs.lastNode = node

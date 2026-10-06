@@ -23,6 +23,8 @@ data class SourceSnapshot(
     val updatedAt: Long,
     val error: String? = null,
     val skipped: Map<String, Int> = emptyMap(),
+    // как часто обновляться, по словам самой подписки
+    val intervalHours: Int? = null,
 )
 
 // загрузка подписок и офлайн-кэш
@@ -75,10 +77,13 @@ class SubscriptionRepository(context: Context) {
                             return@use
                         }
                         File(dir, "$sourceId.txt").writeText(body)
+                        val interval = File(dir, "$sourceId.interval")
+                        parsed.updateIntervalHours?.let { interval.writeText(it.toString()) } ?: interval.delete()
                         return@withContext SourceSnapshot(
                             sourceId, parsed.title, parsed.announce, parsed.notices, parsed.nodes,
                             updatedAt = System.currentTimeMillis(),
                             skipped = parsed.skipped,
+                            intervalHours = parsed.updateIntervalHours,
                         )
                     }
                 } catch (e: Exception) {
@@ -94,9 +99,11 @@ class SubscriptionRepository(context: Context) {
         val file = File(dir, "$sourceId.txt")
         if (!file.exists()) return null
         val parsed = SubscriptionParser.parse(file.readText(), sourceId)
+        val interval = File(dir, "$sourceId.interval").takeIf { it.exists() }?.readText()?.trim()?.toIntOrNull()
         return SourceSnapshot(
             sourceId, parsed.title, parsed.announce, parsed.notices, parsed.nodes, file.lastModified(),
             skipped = parsed.skipped,
+            intervalHours = interval ?: parsed.updateIntervalHours,
         )
     }
 
@@ -120,5 +127,6 @@ class SubscriptionRepository(context: Context) {
 
     fun deleteCache(sourceId: String) {
         File(dir, "$sourceId.txt").delete()
+        File(dir, "$sourceId.interval").delete()
     }
 }

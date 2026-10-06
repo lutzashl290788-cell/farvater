@@ -7,14 +7,19 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.farvater.App
 import app.farvater.core.catalog.BuiltInCatalog
+import app.farvater.core.model.NetMode
+import app.farvater.core.model.NetModeChoice
 import app.farvater.core.model.ProxyNode
+import app.farvater.core.model.SourceMode
 import app.farvater.core.parser.SubscriptionParser
 import app.farvater.core.xray.XrayConfigBuilder
 import app.farvater.data.AppSettings
 import app.farvater.data.LEGAL_VERSION
+import app.farvater.data.SourceConfig
 import app.farvater.data.SourceSnapshot
 import app.farvater.data.UpdateInfo
 import app.farvater.data.UserSource
+import app.farvater.engine.NetModeDetector
 import app.farvater.engine.NodeTester
 import app.farvater.engine.TestMethod
 import app.farvater.engine.TestResult
@@ -52,6 +57,13 @@ data class SourceUi(
     val loading: Boolean,
     // что скрыто из подписки и почему, например «3 Hysteria2, 2 небезопасных»
     val hidden: String? = null,
+    val mode: SourceMode = SourceMode.ANY,
+    // выбранный интервал: null — авто, 0 — только вручную
+    val intervalHours: Int? = null,
+    // интервал, который сообщает сама подписка
+    val ownIntervalHours: Int? = null,
+    // подписка подходит к текущему режиму сети
+    val inMode: Boolean = true,
 )
 
 data class TestProgress(val done: Int, val total: Int, val alive: Int)
@@ -78,6 +90,10 @@ data class UiState(
     val update: UpdateInfo? = null,
     val updateStage: UpdateStage = UpdateStage.Idle,
     val showUpdate: Boolean = false,
+    // режим, по которому отбираются подписки; null — все подписки
+    val netMode: NetMode? = null,
+    val detectedMode: NetMode? = null,
+    val detecting: Boolean = false,
 ) {
     val selectedNode: ProxyNode? get() = nodes.firstOrNull { it.id == selectedId }
     fun sourceTitle(id: String): String =
@@ -135,6 +151,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     // запросы на пересчёт списка склеиваются, сам пересчёт идёт в фоне
     private val rebuildRequests = Channel<Unit>(Channel.CONFLATED)
 
+    // определённый режим сети и последние попытки обновить подписки
+    @Volatile private var detected: NetMode? = prefs.lastNetMode?.let { runCatching { NetMode.valueOf(it) }.getOrNull() }
+    private var detectJob: Job? = null
+    private val attempts = java.util.concurrent.ConcurrentHashMap<String, Long>()
+
     init {
         viewModelScope.launch(Dispatchers.Default) {
             for (request in rebuildRequests) {
@@ -150,12 +171,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 snapshots.value = ids.mapNotNull { id -> repo.loadCached(id)?.let { id to it } }.toMap()
             }
             rebuild()
-            val stale = fetchTargets().any { (id, _) ->
-                val snap = snapshots.value[id]
-                snap == null || System.currentTimeMillis() - snap.updatedAt > STALE_MS
-            }
-            if (stale) refreshAll()
+            refreshDue()
         }
+        // подписки обновляются сами, каждая со своим интервалом
+        viewModelScope.launch {
+            while (true) {
+                delay(DUE_CHECK_MS)
+                refreshDue()
+            }
+        }
+        detectNetMode()
         viewModelScope.launch {
             VpnBus.failedChecks.collect { failures ->
                 if (failures >= 3 && prefs.settings.autoSwitch) switchAwayFromDeadNode()
@@ -168,6 +193,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     // приложение открыли или вернули на экран: тихо проверить обновления
     fun onForeground() {
+        detectNetMode()
         if (prefs.settings.autoUpdates && System.currentTimeMillis() - prefs.lastUpdateCheck > UPDATE_CHECK_GAP_MS) {
             checkUpdates(manual = false)
         }
@@ -229,6 +255,83 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             }.onFailure { e ->
                 _state.update { it.copy(updateStage = UpdateStage.Failed(e.message ?: "ошибка загрузки")) }
             }
+        }
+    }
+
+    // режим сети
+
+
+    private fun effectiveMode(settings: AppSettings): NetMode? = when (settings.netMode) {
+        NetModeChoice.WHITE -> NetMode.WHITE
+        NetModeChoice.BLACK -> NetMode.BLACK
+        NetModeChoice.AUTO -> detected
+    }
+
+    // в режиме «Авто» определяет, какие сейчас ограничения
+    fun detectNetMode(force: Boolean = false): Job? {
+        if (prefs.settings.netMode != NetModeChoice.AUTO) return null
+        detectJob?.takeIf { it.isActive }?.let { return it }
+        val now = System.currentTimeMillis()
+        if (!force && now - lastDetect < DETECT_GAP_MS) return null
+        lastDetect = now
+        return viewModelScope.launch {
+            _state.update { it.copy(detecting = true) }
+            val mode = NetModeDetector.detect()
+            if (mode != null) {
+                detected = mode
+                prefs.lastNetMode = mode.name
+            }
+            _state.update { it.copy(detecting = false) }
+            rebuildNow()
+        }.also { detectJob = it }
+    }
+
+    fun setNetMode(choice: NetModeChoice) {
+        updateSettings { it.copy(netMode = choice) }
+        if (choice == NetModeChoice.AUTO) detectNetMode(force = true)
+    }
+
+    private fun sourceMode(id: String): SourceMode =
+        prefs.sourceConfigs[id]?.mode ?: BuiltInCatalog.byId(id)?.mode ?: SourceMode.ANY
+
+    fun setSourceMode(id: String, mode: SourceMode) {
+        val current = prefs.sourceConfigs[id] ?: SourceConfig()
+        prefs.sourceConfigs = prefs.sourceConfigs + (id to current.copy(mode = mode))
+        rebuild()
+    }
+
+    fun setSourceInterval(id: String, hours: Int?) {
+        val current = prefs.sourceConfigs[id] ?: SourceConfig()
+        prefs.sourceConfigs = prefs.sourceConfigs + (id to current.copy(intervalHours = hours))
+        rebuild()
+        refreshDue()
+    }
+
+
+    // через сколько обновлять подписку, null — только вручную
+    private fun intervalMs(id: String): Long? {
+        val chosen = prefs.sourceConfigs[id]?.intervalHours
+        if (chosen == 0) return null
+        val hours = chosen ?: snapshots.value[id]?.intervalHours?.takeIf { it > 0 } ?: DEFAULT_INTERVAL_H
+        return hours * HOUR_MS
+    }
+
+    private fun refreshDue() {
+        val now = System.currentTimeMillis()
+        val due = fetchTargets().filter { (id, _) ->
+            if (id in loading.value) return@filter false
+            // неудачные попытки не повторяются чаще раза в 15 минут
+            if (now - (attempts[id] ?: 0L) < RETRY_MS) return@filter false
+            val snap = snapshots.value[id]
+            if (snap == null || snap.updatedAt == 0L) return@filter true
+            val interval = intervalMs(id) ?: return@filter false
+            now - snap.updatedAt >= interval
+        }
+        if (due.isEmpty()) return
+        due.forEach { attempts[it.first] = now }
+        val viaTunnel = VpnBus.state.value is VpnState.Connected
+        viewModelScope.launch {
+            due.map { (id, urls) -> async(Dispatchers.IO) { refreshOne(id, urls, viaTunnel) } }.awaitAll()
         }
     }
 
@@ -400,6 +503,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     // проверяет всё и подключается к лучшему узлу
     fun findWorking() {
+        viewModelScope.launch {
+            // в режиме «Авто» сначала уточняем режим, чтобы проверить нужные подписки
+            detectNetMode(force = true)?.join()
+            findWorkingNow()
+        }
+    }
+
+    private fun findWorkingNow() {
         testAll {
             val best = bestNode()
             if (best == null) {
@@ -521,6 +632,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val enabled = prefs.enabledSources
         val snaps = snapshots.value
         val busy = loading.value
+        val configs = prefs.sourceConfigs
+        val mode = effectiveMode(settings)
 
         // безопасный режим фильтрует только публичные подписки: свои узлы выбирает пользователь
         fun hideInsecure(node: ProxyNode) = settings.safeMode && node.isInsecure && node.sourceId in communityIds
@@ -542,6 +655,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 enabled = settings.communityEnabled && s.id in enabled,
                 nodeCount = shown(snap), updatedAt = snap?.updatedAt ?: 0,
                 error = snap?.error, loading = s.id in busy, hidden = hiddenNote(snap),
+                mode = configs[s.id]?.mode ?: s.mode,
+                intervalHours = configs[s.id]?.intervalHours,
+                ownIntervalHours = snap?.intervalHours,
             )
         }
         val own = prefs.userSources.map { u ->
@@ -551,10 +667,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 homepage = u.url, description = u.url, community = false, enabled = true,
                 nodeCount = shown(snap), updatedAt = snap?.updatedAt ?: 0,
                 error = snap?.error, loading = u.id in busy, hidden = hiddenNote(snap),
+                mode = configs[u.id]?.mode ?: SourceMode.ANY,
+                intervalHours = configs[u.id]?.intervalHours,
+                ownIntervalHours = snap?.intervalHours,
             )
         }
-        val sources = community + own
-        val active = sources.filter { it.enabled }.map { it.id }.toSet() + ProxyNode.MANUAL_SOURCE
+        val sources = (community + own).map { it.copy(inMode = it.mode.fits(mode)) }
+        // в работе только подписки, подходящие к текущему режиму сети
+        val active = sources.filter { it.enabled && it.inMode }.map { it.id }.toSet() + ProxyNode.MANUAL_SOURCE
         val activeSnaps = snaps.filterKeys { it in active }.values
         // Hysteria2 не показываем
         val supported = activeSnaps.flatMap { it.nodes }.filter(XrayConfigBuilder::isSupported).distinctBy { it.id }
@@ -575,6 +695,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 hiddenInsecure = supported.size - nodes.size,
                 results = res,
                 announcements = announcements,
+                netMode = mode,
+                detectedMode = detected,
             )
         }
     }
@@ -608,7 +730,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     companion object {
         private val communityIds = BuiltInCatalog.sources.map { it.id }.toSet()
-        private const val STALE_MS = 6 * 60 * 60 * 1000L
+        private const val HOUR_MS = 60 * 60 * 1000L
+        private const val DEFAULT_INTERVAL_H = 6
+        private const val DUE_CHECK_MS = 5 * 60 * 1000L
+        private const val RETRY_MS = 15 * 60 * 1000L
+        private const val DETECT_GAP_MS = 60 * 1000L
+        @Volatile private var lastDetect = 0L
         private const val UPDATE_CHECK_GAP_MS = 60 * 1000L
         private const val REBUILD_GAP_MS = 150L
         private const val FLUSH_MS = 300L

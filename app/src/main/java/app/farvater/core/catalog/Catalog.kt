@@ -1,5 +1,7 @@
 package app.farvater.core.catalog
 
+import app.farvater.core.model.SourceMode
+
 // встроенный каталог публичных подписок
 data class CatalogSource(
     val id: String,
@@ -9,6 +11,7 @@ data class CatalogSource(
     val license: String,
     val description: String,
     val mirrors: List<String>,
+    val mode: SourceMode,
 )
 
 object BuiltInCatalog {
@@ -27,6 +30,7 @@ object BuiltInCatalog {
                 "https://hub.mos.ru/zieng2/wl/raw/main/list_universal.txt",
                 "https://gitverse.ru/api/repos/zieng2/wl/raw/branch/master/list_universal.txt",
             ),
+            mode = SourceMode.WHITE,
         ),
         CatalogSource(
             id = "igareck-mobile",
@@ -41,6 +45,7 @@ object BuiltInCatalog {
                 "https://codeberg.org/igareck/vpn-configs-for-russia/raw/branch/main/Vless-Reality-White-Lists-Rus-Mobile.txt",
                 "https://raw.githack.com/igareck/vpn-configs-for-russia/main/Vless-Reality-White-Lists-Rus-Mobile.txt",
             ),
+            mode = SourceMode.WHITE,
         ),
         CatalogSource(
             id = "igareck-cidr",
@@ -55,6 +60,7 @@ object BuiltInCatalog {
                 "https://codeberg.org/igareck/vpn-configs-for-russia/raw/branch/main/WHITE-CIDR-RU-checked.txt",
                 "https://raw.githack.com/igareck/vpn-configs-for-russia/main/WHITE-CIDR-RU-checked.txt",
             ),
+            mode = SourceMode.WHITE,
         ),
         CatalogSource(
             id = "rjsxrd-bypass",
@@ -67,18 +73,27 @@ object BuiltInCatalog {
                 "https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/bypass/bypass-all.txt",
                 "https://cdn.jsdelivr.net/gh/whoahaow/rjsxrd@main/githubmirror/bypass/bypass-all.txt",
             ),
+            mode = SourceMode.WHITE,
         ),
         CatalogSource(
-            id = "rkp-whitelist",
-            title = "РКП whitelist",
-            author = "RKPchannel",
-            homepage = "https://github.com/RKPchannel/RKP_bypass_configs",
-            license = "GPL-3.0",
-            description = "VLESS и Trojan, отобранные по подсетям и SNI белого списка.",
-            mirrors = listOf(
-                "https://raw.githubusercontent.com/RKPchannel/RKP_bypass_configs/refs/heads/main/whitelist.txt",
-                "https://cdn.jsdelivr.net/gh/RKPchannel/RKP_bypass_configs@main/whitelist.txt",
-            ),
+            id = "rkp-wl",
+            title = "РКП: белые списки",
+            author = "RKP",
+            homepage = "https://hub.mos.ru/rkp/sub-roskompozor",
+            license = "не указана",
+            description = "Подписка Анти-РосКомПозор для режима белых списков.",
+            mirrors = listOf("https://hub.mos.ru/rkp/sub-roskompozor/raw/main/wl"),
+            mode = SourceMode.WHITE,
+        ),
+        CatalogSource(
+            id = "rkp-bl",
+            title = "РКП: чёрные списки",
+            author = "RKP",
+            homepage = "https://hub.mos.ru/rkp/sub-roskompozor",
+            license = "не указана",
+            description = "Подписка Анти-РосКомПозор для обычных блокировок.",
+            mirrors = listOf("https://hub.mos.ru/rkp/sub-roskompozor/raw/main/bl"),
+            mode = SourceMode.BLACK,
         ),
         CatalogSource(
             id = "byewhitelists2",
@@ -91,6 +106,7 @@ object BuiltInCatalog {
                 "https://raw.githubusercontent.com/ByeWhiteLists/ByeWhiteLists2/refs/heads/main/ByeWhiteLists2.txt",
                 "https://cdn.jsdelivr.net/gh/ByeWhiteLists/ByeWhiteLists2@main/ByeWhiteLists2.txt",
             ),
+            mode = SourceMode.WHITE,
         ),
     )
 
