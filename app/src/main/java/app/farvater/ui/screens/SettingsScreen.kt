@@ -115,6 +115,7 @@ fun SettingsScreen(
     val collapsed by remember { derivedStateOf { scroll.value > 70 } }
     val divider = 59.dp
     var showApps by remember { mutableStateOf(false) }
+    val bypassCount = remember(settings.bypassApps) { context.installedCount(settings.bypassApps) }
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
@@ -135,7 +136,7 @@ fun SettingsScreen(
                     title = "Приложения мимо VPN",
                     icon = Icons.Rounded.Apps,
                     iconTint = c.indigo,
-                    value = if (settings.bypassApps.isEmpty()) "нет" else settings.bypassApps.size.toString(),
+                    value = if (bypassCount == 0) "нет" else bypassCount.toString(),
                     chevron = true,
                     onClick = { showApps = true },
                 )
@@ -412,6 +413,9 @@ private fun Feature(icon: ImageVector, tint: Color, title: String, text: String)
         }
     }
 }
+
+private fun Context.installedCount(packages: Set<String>): Int =
+    packages.count { packageManager.getLaunchIntentForPackage(it) != null }
 
 private fun Context.isBatteryUnrestricted(): Boolean =
     getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(packageName)

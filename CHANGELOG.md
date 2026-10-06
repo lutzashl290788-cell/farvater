@@ -4,6 +4,12 @@
 
 ## [Не выпущено]
 
+## [1.0.9] — 2026-10-07
+
+### Исправлено
+
+- Счётчик «Приложения мимо VPN» в настройках учитывал приложения из старого списка банков, которых нет на телефоне. Теперь он считает только установленные.
+
 ## [1.0.8] — 2026-10-06
 
 ### Добавлено
@@ -118,7 +124,8 @@
 - Интерфейс в стиле iOS, светлая и тёмная темы.
 - Импорт подписки по ссылке `farvater://import`.
 
-[Не выпущено]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.8...HEAD
+[Не выпущено]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.9...HEAD
+[1.0.9]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.8...v1.0.9
 [1.0.8]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.7...v1.0.8
 [1.0.7]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.5...v1.0.6
