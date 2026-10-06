@@ -40,16 +40,13 @@ import java.net.Proxy
 import java.util.concurrent.TimeUnit
 
 class FarvaterVpnService : VpnService() {
-
     companion object {
         const val ACTION_START = "app.farvater.action.START"
         const val ACTION_STOP = "app.farvater.action.STOP"
         const val CHANNEL = "vpn"
         private const val NOTIFICATION_ID = 7
         private const val MTU = 8500
-        // как часто проверять, отвечает ли узел, в секундах
         private const val PROBE_EVERY = 60
-        // пока экран включён, обновления ищутся раз в минуту
         private const val UPDATE_GAP_MS = 60 * 1000L
 
         fun start(context: Context, node: ProxyNode) {
@@ -68,7 +65,6 @@ class FarvaterVpnService : VpnService() {
     private var lastNotificationText: String? = null
     private var lastUpdateAttempt = 0L
 
-    // экран выключен: статистику никто не видит, а лишние запросы будят радио и садят батарею
     private val screenOn = MutableStateFlow(true)
     private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -83,7 +79,6 @@ class FarvaterVpnService : VpnService() {
             addAction(Intent.ACTION_SCREEN_ON)
             addAction(Intent.ACTION_SCREEN_OFF)
         }
-        // эти события присылает только система, поэтому приёмник можно не закрывать
         ContextCompat.registerReceiver(this, screenReceiver, filter, ContextCompat.RECEIVER_EXPORTED)
     }
 
@@ -99,7 +94,6 @@ class FarvaterVpnService : VpnService() {
             stopVpn()
             return START_NOT_STICKY
         }
-        // запуск из приложения, плитки или Always-on
         val node = App.prefs.lastNode
         startForegroundCompat(notification(node?.name ?: "Подключение", "Поднимаю туннель"))
         if (node == null) {
@@ -129,7 +123,6 @@ class FarvaterVpnService : VpnService() {
             .addAddress("10.10.14.1", 30)
             .addRoute("0.0.0.0", 0)
             .addDnsServer("1.1.1.1")
-        // приложение идёт мимо туннеля
         runCatching { builder.addDisallowedApplication(packageName) }
         settings.bypassApps.forEach { pkg -> runCatching { builder.addDisallowedApplication(pkg) } }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) builder.setMetered(false)
@@ -152,11 +145,9 @@ class FarvaterVpnService : VpnService() {
         while (scope.isActive) {
             if (!screenOn.value) {
                 VpnBus.traffic.value = VpnBus.traffic.value.copy(upBps = 0, downBps = 0)
-                // спим до включения экрана, туннель при этом работает как обычно
                 screenOn.first { it }
                 lastTx = -1L
                 lastRx = -1L
-                // после включения экрана узел проверяется почти сразу
                 tick = PROBE_EVERY - 3
                 maybeCheckUpdates()
             }
@@ -186,8 +177,6 @@ class FarvaterVpnService : VpnService() {
         }
     }
 
-    // системный планировщик на многих телефонах откладывает фоновые задачи,
-    // поэтому, пока VPN работает, обновления ищет сам сервис
     private fun maybeCheckUpdates() {
         val now = System.currentTimeMillis()
         if (now - maxOf(App.prefs.lastUpdateCheck, lastUpdateAttempt) < UPDATE_GAP_MS) return
@@ -244,7 +233,7 @@ class FarvaterVpnService : VpnService() {
             this, 1, Intent(this, FarvaterVpnService::class.java).setAction(ACTION_STOP), PendingIntent.FLAG_IMMUTABLE,
         )
         return Notification.Builder(this, CHANNEL)
-            .setSmallIcon(R.drawable.ic_beacon)
+            .setSmallIcon(R.drawable.ic_logo)
             .setContentTitle(title)
             .setContentText(text)
             .setOngoing(true)
@@ -254,7 +243,6 @@ class FarvaterVpnService : VpnService() {
             .build()
     }
 
-    // уведомление перерисовывается, только если текст изменился
     private fun updateNotification(title: String, text: String) {
         val key = "$title\n$text"
         if (key == lastNotificationText) return

@@ -2,12 +2,10 @@ name: Проверочная сборка
 
 on:
   push:
-    # ветку релиза собирает и проверяет сам релиз
     branches: ["**", "!release/**"]
   pull_request:
   workflow_dispatch:
 
-# новый запуск той же ветки отменяет старый: не тратим минуты на устаревшие и повторные сборки
 concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: true
@@ -27,10 +25,8 @@ jobs:
 
       - uses: android-actions/setup-android@v3
         with:
-          # пакета tools больше нет в SDK
           packages: platform-tools
 
-      # ядро и мост меняются только вместе со скриптом сборки, поэтому их можно не собирать каждый раз
       - name: Кэш ядра и TUN-моста
         id: natives
         uses: actions/cache@v4
@@ -65,7 +61,6 @@ jobs:
             echo "== $(basename "$apk") — $(du -h "$apk" | cut -f1)"
             unzip -l "$apk" | awk '/lib\/.*\.so$/ {print "   " $4 " (" int($1/1024) " КБ)"}'
           done
-          # без ядра и TUN-моста VPN не работает
           listing="$(unzip -l app/build/outputs/apk/debug/*universal*.apk)"
           for abi in arm64-v8a armeabi-v7a x86_64 x86; do
             for lib in libgojni.so libhev-socks5-tunnel.so; do
@@ -78,7 +73,6 @@ jobs:
           name: farvater-debug
           path: app/build/outputs/apk/debug/*.apk
 
-  # релиз без подписи: проверяет сжатие R8 и lint до того, как появится ключ
   release-check:
     if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -94,10 +88,8 @@ jobs:
 
       - uses: android-actions/setup-android@v3
         with:
-          # пакета tools больше нет в SDK
           packages: platform-tools
 
-      # ядро и мост меняются только вместе со скриптом сборки, поэтому их можно не собирать каждый раз
       - name: Кэш ядра и TUN-моста
         id: natives
         uses: actions/cache@v4
@@ -134,7 +126,6 @@ jobs:
           for lib in libgojni.so libhev-socks5-tunnel.so; do
             grep -q "lib/arm64-v8a/$lib" <<<"$listing" || { echo "::error::В release нет $lib"; exit 1; }
           done
-          # классы, которые вызываются через рефлексию и JNI, должны остаться с прежними именами
           dex="$(unzip -p "$apk" 'classes*.dex' | strings)"
           for cls in libv2ray/Libv2ray hev/sockstun/TProxyService; do
             grep -q "L$cls;" <<<"$dex" || { echo "::error::R8 удалил или переименовал $cls"; exit 1; }

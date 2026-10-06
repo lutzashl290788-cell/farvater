@@ -9,8 +9,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.concurrent.TimeUnit
 
-// определяет режим сети: при белых списках зарубежные сайты недоступны, а российские открываются.
-// приложение исключено из туннеля, поэтому проверка идёт напрямую даже при включённом VPN
 object NetModeDetector {
     private val client = OkHttpClient.Builder()
         .connectTimeout(4, TimeUnit.SECONDS)
@@ -31,7 +29,6 @@ object NetModeDetector {
         "https://www.gosuslugi.ru/",
     )
 
-    // null, если интернета нет совсем
     suspend fun detect(): NetMode? = coroutineScope {
         val abroad = foreign.map { async(Dispatchers.IO) { reachable(it) } }
         val home = domestic.map { async(Dispatchers.IO) { reachable(it) } }

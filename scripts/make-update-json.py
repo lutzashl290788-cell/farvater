@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-# собирает update.json для проверки обновлений в приложении
-# аргументы: версия, репозиторий owner/name, тег, файл с изменениями, папка с APK
 import datetime
 import hashlib
 import json
@@ -15,7 +13,6 @@ notes, critical = [], False
 if os.path.exists(notes_file):
     for line in open(notes_file, encoding="utf-8"):
         line = line.strip()
-        # строка #critical помечает срочное исправление
         if line.lower() == "#critical":
             critical = True
         elif line.startswith(("- ", "• ")):

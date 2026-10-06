@@ -7,8 +7,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import app.farvater.core.model.NetMode
 import app.farvater.core.model.Protocol
 import app.farvater.core.model.ProxyNode
+import app.farvater.core.model.SourceMode
 import app.farvater.data.AppSettings
 import app.farvater.engine.TestMethod
 import app.farvater.engine.TestResult
@@ -29,12 +31,10 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-// скриншоты экранов, пишутся задачей recordRoborazziDebug
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [35], qualifiers = "w393dp-h852dp-xxhdpi", application = Application::class)
 class ScreenshotTest {
-
     @get:Rule val rule = createComposeRule()
 
     @Test fun homeIdleDark() = shot("01_home_idle_dark", dark = true) { Home(VpnState.Idle) }
@@ -101,7 +101,6 @@ class ScreenshotTest {
     }
 }
 
-// правдоподобные данные для скриншотов
 private object Fake {
     private fun node(id: String, name: String, protocol: Protocol, params: Map<String, String>, source: String) =
         ProxyNode(id, protocol, name, "203.0.113.${id.length * 7}", 443, "secret", params, "vless://$id", source)
@@ -111,7 +110,7 @@ private object Fake {
         node("a1", "🇷🇺 Москва, VK Cloud", Protocol.VLESS, reality, "igareck-mobile"),
         node("b22", "🇷🇺 Санкт-Петербург, Selectel", Protocol.VLESS, reality + ("type" to "xhttp"), "zieng2-universal"),
         node("c333", "🇫🇮 Хельсинки", Protocol.VLESS, mapOf("security" to "tls", "type" to "ws"), "rjsxrd-bypass"),
-        node("d4444", "🇳🇱 Амстердам", Protocol.TROJAN, mapOf("security" to "tls"), "rkp-whitelist"),
+        node("d4444", "🇳🇱 Амстердам", Protocol.TROJAN, mapOf("security" to "tls"), "rkp-wl"),
         node("e55555", "🇩🇪 Франкфурт, Join Telegram @SolVPN", Protocol.VMESS, mapOf("type" to "ws"), "rjsxrd-bypass"),
         node("f666666", "🇹🇷 Стамбул", Protocol.SHADOWSOCKS, mapOf("method" to "chacha20-ietf-poly1305"), "manual"),
         node("g7777777", "🇰🇿 Алматы", Protocol.VLESS, mapOf("security" to "none"), "byewhitelists2"),
@@ -125,22 +124,28 @@ private object Fake {
         "e55555" to TestResult("e55555", 96, TestMethod.TCP),
         "g7777777" to TestResult("g7777777", -1, TestMethod.REAL),
     )
-    private fun source(id: String, title: String, author: String, license: String, count: Int, error: String? = null) =
+    private fun source(
+        id: String, title: String, author: String, license: String, count: Int,
+        error: String? = null, mode: SourceMode = SourceMode.WHITE,
+    ) =
         SourceUi(
             id = id, title = title, author = author, license = license, homepage = "https://example.org",
             description = "Белые списки, проверенные подсети. Обновляется раз в час.", community = true,
             enabled = error == null, nodeCount = count, updatedAt = System.currentTimeMillis() - 23 * 60_000,
-            error = error, loading = false,
+            error = error, loading = false, mode = mode, inMode = mode.fits(NetMode.WHITE),
         )
     val sources = listOf(
         source("zieng2-universal", "WL Universal", "zieng2", "не указана", 85),
         source("igareck-mobile", "Белые списки, мобильные", "igareck", "GPL-3.0", 20),
         source("igareck-cidr", "Белые списки, проверенные подсети", "igareck", "GPL-3.0", 0, "в подписке сейчас нет серверов"),
         source("rjsxrd-bypass", "rjsxrd", "whoahaow", "MIT", 475),
+        source("rkp-wl", "РКП: белые списки", "RKP", "не указана", 64),
+        source("rkp-bl", "РКП: чёрные списки", "RKP", "не указана", 112, mode = SourceMode.BLACK),
         SourceUi(
             id = "user-1", title = "sub.example.net", author = "ваша подписка", license = "",
             homepage = "https://sub.example.net/abc", description = "https://sub.example.net/abc", community = false,
             enabled = true, nodeCount = 12, updatedAt = System.currentTimeMillis() - 3 * 3_600_000, error = null, loading = false,
+            intervalHours = 3,
         ),
     )
     val state = UiState(
@@ -149,8 +154,10 @@ private object Fake {
         nodes = nodes,
         results = results,
         selectedId = "a1",
+        netMode = NetMode.WHITE,
+        detectedMode = NetMode.WHITE,
         announcements = listOf(
-            Announcement("РКП whitelist", "⚠️ - Конфиг без шифрования трафика.\n🏴 - Конфиг с неизвестным выходным трафиком."),
+            Announcement("РКП: белые списки", "⚠️ - Конфиг без шифрования трафика.\n🏴 - Конфиг с неизвестным выходным трафиком."),
             Announcement("rjsxrd", "t.me/rjsxrd · 475 configs · last update: 14:27 05/10/2026"),
         ),
     )

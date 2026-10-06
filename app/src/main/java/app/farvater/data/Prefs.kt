@@ -9,12 +9,10 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 
-// версия условий использования
 const val LEGAL_VERSION = 1
 
 @Serializable
 data class AppSettings(
-    // банки и госсервисы мимо VPN
     val directRuServices: Boolean = true,
     val autoSwitch: Boolean = true,
     val hideDead: Boolean = false,
@@ -23,20 +21,14 @@ data class AppSettings(
     val onboardingDone: Boolean = false,
     val communityEnabled: Boolean = false,
     val acceptedLegalVersion: Int = 0,
-    // прятать узлы без шифрования, со слабым шифрованием или без проверки сертификата
     val safeMode: Boolean = true,
-    // DNS-запросы идут через узел по HTTPS, сервер не может их подменить
     val encryptedDns: Boolean = true,
-    // отправлять HWID своим подпискам: панели с лимитом устройств без него урезают подписку
     val sendHwid: Boolean = true,
-    // проверять обновления в фоне и присылать уведомление
     val autoUpdates: Boolean = true,
-    // приложения мимо VPN, выбирает пользователь
     val bypassApps: Set<String> = emptySet(),
     val netMode: NetModeChoice = NetModeChoice.AUTO,
 )
 
-// режим и интервал обновления подписки. intervalHours: null — авто, 0 — только вручную
 @Serializable
 data class SourceConfig(val mode: SourceMode? = null, val intervalHours: Int? = null)
 
@@ -47,7 +39,6 @@ class Prefs(context: Context) {
     private val sp = context.getSharedPreferences("farvater", Context.MODE_PRIVATE)
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
-    // значения держим в памяти: их читают на каждом пересчёте списка
     @Volatile private var cachedSettings: AppSettings? = null
     @Volatile private var cachedEnabled: Set<String>? = null
     @Volatile private var cachedUserSources: List<UserSource>? = null
@@ -60,7 +51,6 @@ class Prefs(context: Context) {
             write("settings", value)
         }
 
-    // включённые источники каталога, новые источники из обновлений включаются сами
     var enabledSources: Set<String>
         get() = cachedEnabled ?: run {
             val all = BuiltInCatalog.sources.map { it.id }.toSet()
@@ -89,12 +79,10 @@ class Prefs(context: Context) {
             write("source_configs", value)
         }
 
-    // последний определённый режим сети, чтобы при запуске не ждать проверки
     var lastNetMode: String?
         get() = sp.getString("last_net_mode", null)
         set(value) = sp.edit().putString("last_net_mode", value).apply()
 
-    // случайный идентификатор установки для подписок с лимитом устройств, не связан с железом телефона
     val hwid: String
         get() = sp.getString("hwid", null) ?: java.util.UUID.randomUUID().toString().replace("-", "")
             .also { sp.edit().putString("hwid", it).apply() }
@@ -103,12 +91,10 @@ class Prefs(context: Context) {
         get() = sp.getLong("last_update_check", 0)
         set(value) = sp.edit().putLong("last_update_check", value).apply()
 
-    // последняя версия, о которой уже пришло уведомление
     var notifiedVersion: Int
         get() = sp.getInt("notified_version", 0)
         set(value) = sp.edit().putInt("notified_version", value).apply()
 
-    // для какой версии уже показали окно «Что нового» внутри приложения
     var shownUpdateVersion: Int
         get() = sp.getInt("shown_update_version", 0)
         set(value) = sp.edit().putInt("shown_update_version", value).apply()
@@ -117,13 +103,11 @@ class Prefs(context: Context) {
         get() = sp.getString("selected_node", null)
         set(value) = sp.edit().putString("selected_node", value).apply()
 
-    // узел, к которому подключается сервис
     var lastNode: ProxyNode?
         get() = read<ProxyNode>("last_node")
         set(value) = write("last_node", value)
 
     private companion object {
-        // каталог версий до 1.1.0: эти источники пользователь уже видел
         val OLD_CATALOG = setOf(
             "zieng2-universal", "igareck-mobile", "igareck-cidr", "rjsxrd-bypass", "rkp-whitelist", "byewhitelists2",
         )

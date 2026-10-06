@@ -4,7 +4,6 @@ import android.content.Context
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
 
-// обёртка над Xray-core, вызовы через рефлексию
 object XrayEngine {
     private const val LIB = "libv2ray.Libv2ray"
     private const val CALLBACK = "libv2ray.CoreCallbackHandler"
@@ -72,7 +71,6 @@ object XrayEngine {
         controller = null
     }
 
-    // задержка через узел, -1 если нет ответа
     fun measureDelay(config: String, url: String): Long {
         val m = measureMethod ?: return -1
         return runCatching { (m.invoke(null, config, url) as Number).toLong() }.getOrDefault(-1L)

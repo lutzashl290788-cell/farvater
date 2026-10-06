@@ -84,7 +84,6 @@ import app.farvater.ui.theme.IosMotion
 import app.farvater.ui.theme.IosType
 import kotlin.math.roundToInt
 
-// нажатие как в iOS: лёгкое сжатие и приглушение
 @OptIn(ExperimentalFoundationApi::class)
 fun Modifier.iosPress(
     enabled: Boolean = true,
@@ -111,7 +110,6 @@ fun Modifier.iosPress(
         )
 }
 
-// подсветка строки списка: мгновенно при касании и мягко гаснет
 @OptIn(ExperimentalFoundationApi::class)
 fun Modifier.iosRowPress(onLongClick: (() -> Unit)? = null, onClick: () -> Unit): Modifier = composed {
     val interaction = remember { MutableInteractionSource() }
@@ -130,7 +128,6 @@ fun Modifier.iosRowPress(onLongClick: (() -> Unit)? = null, onClick: () -> Unit)
     )
 }
 
-// крупный заголовок экрана
 @Composable
 fun IosLargeTitle(
     title: String,
@@ -151,7 +148,6 @@ fun IosLargeTitle(
     }
 }
 
-// компактная шапка, проявляется при прокрутке вместо крупного заголовка
 @Composable
 fun IosCompactBar(title: String, visible: Boolean, modifier: Modifier = Modifier) {
     val c = Ios.colors
@@ -170,7 +166,6 @@ fun IosCompactBar(title: String, visible: Boolean, modifier: Modifier = Modifier
     }
 }
 
-// секция сгруппированного списка
 @Composable
 fun IosSection(
     modifier: Modifier = Modifier,
@@ -206,13 +201,11 @@ fun IosSection(
     }
 }
 
-// тонкий разделитель с отступом слева
 @Composable
 fun IosDivider(start: Dp = 16.dp) {
     HorizontalDivider(Modifier.padding(start = start), thickness = 0.5.dp, color = Ios.colors.separator)
 }
 
-// цветная квадратная иконка как в «Настройках»
 @Composable
 fun IosIcon(icon: ImageVector, tint: Color, size: Dp = 29.dp) {
     Box(
@@ -223,7 +216,6 @@ fun IosIcon(icon: ImageVector, tint: Color, size: Dp = 29.dp) {
     }
 }
 
-// строка списка
 @Composable
 fun IosRow(
     title: String,
@@ -291,7 +283,6 @@ fun IosRow(
     }
 }
 
-// переключатель iOS: зелёная дорожка и белый бегунок на пружине
 @Composable
 fun IosSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
     val c = Ios.colors
@@ -331,7 +322,6 @@ fun IosSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit, modifier: Mo
     }
 }
 
-// сегментированный выбор с плавающим ползунком
 @Composable
 fun IosSegmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
     val c = Ios.colors
@@ -384,7 +374,6 @@ fun IosSegmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit, 
     }
 }
 
-// поле поиска iOS
 @Composable
 fun IosSearchField(value: String, onValueChange: (String) -> Unit, placeholder: String, modifier: Modifier = Modifier) {
     val c = Ios.colors
@@ -421,7 +410,6 @@ fun IosSearchField(value: String, onValueChange: (String) -> Unit, placeholder: 
     }
 }
 
-// поле ввода для окон
 @Composable
 fun IosTextField(value: String, onValueChange: (String) -> Unit, placeholder: String, modifier: Modifier = Modifier) {
     val c = Ios.colors
@@ -447,7 +435,6 @@ fun IosTextField(value: String, onValueChange: (String) -> Unit, placeholder: St
 
 enum class IosButtonStyle { Filled, Tinted, Plain }
 
-// кнопка iOS: залитая, тонированная или простая
 @Composable
 fun IosButton(
     text: String,
@@ -483,7 +470,6 @@ fun IosButton(
     }
 }
 
-// круглая тонированная кнопка для шапки экрана
 @Composable
 fun IosCircleButton(icon: ImageVector, description: String, onClick: () -> Unit, tint: Color = Ios.colors.tint) {
     Box(
@@ -498,7 +484,6 @@ fun IosCircleButton(icon: ImageVector, description: String, onClick: () -> Unit,
     }
 }
 
-// индикатор загрузки iOS: восемь лепестков
 @Composable
 fun IosSpinner(modifier: Modifier = Modifier, size: Dp = 20.dp, color: Color = Ios.colors.secondaryLabel) {
     val step by rememberInfiniteTransition(label = "spinner").animateFloat(
@@ -525,7 +510,6 @@ fun IosSpinner(modifier: Modifier = Modifier, size: Dp = 20.dp, color: Color = I
     }
 }
 
-// тонкая полоса прогресса
 @Composable
 fun IosProgressBar(fraction: Float, modifier: Modifier = Modifier, color: Color = Ios.colors.tint) {
     val c = Ios.colors
@@ -540,7 +524,6 @@ enum class AlertRole { Default, Preferred, Cancel, Destructive }
 @Immutable
 data class AlertAction(val text: String, val role: AlertRole = AlertRole.Default, val onClick: () -> Unit)
 
-// окно в стиле iOS: появляется с лёгким масштабом
 @Composable
 fun IosAlert(
     title: String,
@@ -613,7 +596,6 @@ private fun AlertButton(action: AlertAction, modifier: Modifier) {
     }
 }
 
-// панель-«стекло» для плавающих элементов
 @Composable
 fun IosGlass(modifier: Modifier = Modifier, shape: androidx.compose.ui.graphics.Shape = CircleShape, content: @Composable () -> Unit) {
     val c = Ios.colors

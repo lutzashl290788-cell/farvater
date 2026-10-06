@@ -2,7 +2,6 @@ package app.farvater.core.catalog
 
 import app.farvater.core.model.SourceMode
 
-// встроенный каталог публичных подписок
 data class CatalogSource(
     val id: String,
     val title: String,

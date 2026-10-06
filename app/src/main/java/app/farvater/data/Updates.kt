@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit
 @Serializable
 data class UpdateAsset(val url: String, val sha256: String, val size: Long = 0)
 
-// описание релиза из update.json, его собирает CI вместе с APK
 @Serializable
 data class UpdateInfo(
     val versionCode: Int,
@@ -33,12 +32,10 @@ data class UpdateInfo(
     val notes: List<String> = emptyList(),
     val assets: Map<String, UpdateAsset> = emptyMap(),
 ) {
-    // APK под архитектуру телефона, иначе универсальный
     fun assetForDevice(): UpdateAsset? =
         Build.SUPPORTED_ABIS.firstNotNullOfOrNull { assets[it] } ?: assets["universal"]
 }
 
-// проверка, скачивание и установка обновлений с GitHub и зеркал
 class UpdateRepository(private val context: Context) {
     private val json = Json { ignoreUnknownKeys = true }
     private val dir = File(context.cacheDir, "updates").apply { mkdirs() }
@@ -54,7 +51,6 @@ class UpdateRepository(private val context: Context) {
             .build()
     }
 
-    // где лежит update.json: релиз на GitHub и копии в ветке updates
     private val manifestUrls: List<String>
         get() {
             val repo = BuildConfig.UPDATE_REPO
@@ -65,7 +61,6 @@ class UpdateRepository(private val context: Context) {
             )
         }
 
-    // свежий релиз, если он новее установленной версии
     suspend fun check(viaTunnel: Boolean): Result<UpdateInfo?> = withContext(Dispatchers.IO) {
         val clients = if (viaTunnel) listOf(tunnelClient, baseClient) else listOf(baseClient)
         var lastError: Throwable? = null
@@ -84,7 +79,6 @@ class UpdateRepository(private val context: Context) {
         Result.failure(lastError ?: IllegalStateException("нет зеркал"))
     }
 
-    // скачивает APK и сверяет SHA-256, onProgress получает долю от 0 до 1
     suspend fun download(info: UpdateInfo, viaTunnel: Boolean, onProgress: (Float) -> Unit): Result<File> =
         withContext(Dispatchers.IO) {
             runCatching {
@@ -122,14 +116,12 @@ class UpdateRepository(private val context: Context) {
             }
         }
 
-    // может ли Фарватер ставить приложения; если нет, пользователь разрешает это в настройках
     fun canInstall(): Boolean = context.packageManager.canRequestPackageInstalls()
 
     fun installPermissionIntent(): Intent =
         Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}"))
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
-    // системный установщик сам проверит, что подпись совпадает с установленной
     fun installIntent(apk: File): Intent {
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.files", apk)
         return Intent(Intent.ACTION_VIEW)

@@ -3,7 +3,6 @@ package app.farvater.core.parser
 import java.util.Base64
 
 internal object Base64Util {
-    // декодирует обычный и url-safe base64, иначе null
     fun decodeToString(input: String): String? {
         val clean = input.filterNot { it.isWhitespace() }
         if (clean.isEmpty()) return null

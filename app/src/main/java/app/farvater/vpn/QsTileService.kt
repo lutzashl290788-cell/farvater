@@ -13,7 +13,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
-// плитка в шторке
 class QsTileService : TileService() {
     private var job: Job? = null
 

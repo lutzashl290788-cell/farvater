@@ -6,7 +6,6 @@ import app.farvater.core.xray.XrayConfigBuilder
 import hev.sockstun.TProxyService
 import java.io.File
 
-// мост TUN в SOCKS5 через hev-socks5-tunnel
 object TunBridge {
     val isAvailable: Boolean by lazy {
         runCatching { System.loadLibrary("hev-socks5-tunnel") }.isSuccess
@@ -44,7 +43,6 @@ object TunBridge {
         running = false
     }
 
-    // tx_packets, tx_bytes, rx_packets, rx_bytes или null
     fun stats(): LongArray? =
         if (running) runCatching { TProxyService.TProxyGetStats() }.getOrNull() else null
 }

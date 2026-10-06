@@ -12,11 +12,9 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 
-// собирает конфиг Xray для одного узла
 object XrayConfigBuilder {
     const val SOCKS_PORT = 10808
 
-    // сервисы, которые идут мимо VPN
     private val DIRECT_DOMAINS = listOf(
         "gosuslugi.ru", "gov.ru", "mos.ru", "nalog.ru",
         "sberbank.ru", "sber.ru", "vtb.ru", "tbank.ru", "tinkoff.ru", "alfabank.ru", "gazprombank.ru",
@@ -29,10 +27,8 @@ object XrayConfigBuilder {
 
     fun isSupported(node: ProxyNode): Boolean = node.protocol != Protocol.HYSTERIA2
 
-    // DNS по HTTPS через узел: адреса по IP, чтобы не зависеть от обычного DNS
     private val ENCRYPTED_DNS = listOf("https://1.1.1.1/dns-query", "https://8.8.8.8/dns-query")
 
-    // forTest без входа и маршрутизации
     fun build(node: ProxyNode, directRuServices: Boolean, forTest: Boolean = false, encryptedDns: Boolean = true): String? {
         val proxy = outbound(node) ?: return null
         return buildJsonObject {
@@ -78,7 +74,6 @@ object XrayConfigBuilder {
                 putJsonObject("routing") {
                     put("domainStrategy", "AsIs")
                     putJsonArray("rules") {
-                        // запросы DNS из туннеля отвечает ядро, само уходя через узел по HTTPS
                         if (encryptedDns) addJsonObject {
                             put("type", "field")
                             putJsonArray("inboundTag") { add("socks") }
@@ -175,7 +170,6 @@ object XrayConfigBuilder {
             putJsonObject("streamSettings") { put("network", "tcp") }
         }
 
-        // Hysteria2 пока не поддерживается
         Protocol.HYSTERIA2 -> null
     }
 

@@ -19,9 +19,7 @@ import app.farvater.vpn.VpnBus
 import app.farvater.vpn.VpnState
 import java.util.concurrent.TimeUnit
 
-// фоновая проверка обновлений раз в 15 минут, чаще Android не разрешает
 class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
-
     override suspend fun doWork(): Result {
         checkAndNotify(applicationContext)
         return Result.success()
@@ -32,13 +30,11 @@ class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         const val EXTRA_OPEN_UPDATE = "app.farvater.OPEN_UPDATE"
         private const val NOTIFICATION_ID = 21
 
-        // проверка и уведомление, общие для фоновой задачи и VPN-сервиса
         suspend fun checkAndNotify(context: Context) {
             if (!App.prefs.settings.autoUpdates) return
             val result = App.updates.check(viaTunnel = VpnBus.state.value is VpnState.Connected)
             if (result.isSuccess) App.prefs.lastUpdateCheck = System.currentTimeMillis()
             val info = result.getOrNull() ?: return
-            // об одной версии напоминаем один раз
             if (App.prefs.notifiedVersion >= info.versionCode) return
             App.prefs.notifiedVersion = info.versionCode
             notify(context, info)
@@ -53,7 +49,6 @@ class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker
                         .build(),
                 )
                 .build()
-            // UPDATE, чтобы новый интервал применился и после обновления приложения
             WorkManager.getInstance(context).enqueueUniquePeriodicWork("updates", ExistingPeriodicWorkPolicy.UPDATE, request)
         }
 
@@ -66,7 +61,7 @@ class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker
             )
             val text = info.notes.take(3).joinToString("\n").ifBlank { "Нажмите, чтобы обновить" }
             val notification = NotificationCompat.Builder(context, CHANNEL)
-                .setSmallIcon(R.drawable.ic_beacon)
+                .setSmallIcon(R.drawable.ic_logo)
                 .setContentTitle(if (info.critical) "Важное обновление Фарватера ${info.versionName}" else "Доступен Фарватер ${info.versionName}")
                 .setContentText(text.lineSequence().first())
                 .setStyle(NotificationCompat.BigTextStyle().bigText(text))

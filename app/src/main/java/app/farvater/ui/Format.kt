@@ -35,7 +35,6 @@ fun formatAgo(timestamp: Long, now: Long = System.currentTimeMillis()): String {
 
 private val LeadingFlag = Regex("""^\s*([\x{1F1E6}-\x{1F1FF}]{2})\s*""")
 
-// флаг в начале названия узла и название без него
 fun splitFlag(name: String): Pair<String?, String> {
     val match = LeadingFlag.find(name) ?: return null to name.trim()
     return match.groupValues[1] to name.substring(match.range.last + 1).trim().ifBlank { name.trim() }

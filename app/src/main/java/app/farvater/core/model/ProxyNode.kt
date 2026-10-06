@@ -11,7 +11,6 @@ enum class Protocol(val title: String) {
     HYSTERIA2("Hysteria2"),
 }
 
-// один сервер из подписки
 @Serializable
 data class ProxyNode(
     val id: String,
@@ -27,7 +26,6 @@ data class ProxyNode(
     val security: String get() = params["security"].orEmpty().lowercase()
     val transport: String get() = params["type"].orEmpty().ifBlank { "tcp" }.lowercase()
 
-    // почему узел небезопасен: трафик можно прочитать или подменить по дороге; null, если всё в порядке
     val securityIssue: String?
         get() = when {
             params["allowInsecure"] == "1" || params["insecure"] == "1" -> "Без проверки сертификата"
@@ -60,7 +58,6 @@ data class ProxyNode(
     companion object {
         const val MANUAL_SOURCE = "manual"
 
-        // современные методы Shadowsocks с проверкой целостности
         private val AEAD_METHODS = setOf(
             "aes-128-gcm", "aes-192-gcm", "aes-256-gcm",
             "chacha20-ietf-poly1305", "chacha20-poly1305", "xchacha20-ietf-poly1305", "xchacha20-poly1305",

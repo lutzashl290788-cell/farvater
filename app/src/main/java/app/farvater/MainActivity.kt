@@ -32,7 +32,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        // «назад» на главном экране сворачивает приложение, а не закрывает его
         onBackPressedDispatcher.addCallback(this) { moveTaskToBack(true) }
 
         if (Build.VERSION.SDK_INT >= 33 &&
@@ -66,7 +65,6 @@ class MainActivity : ComponentActivity() {
         handleDeepLink(intent)
     }
 
-    // импорт по ссылке farvater://import
     private fun handleDeepLink(intent: Intent?) {
         if (intent?.getBooleanExtra(UpdateWorker.EXTRA_OPEN_UPDATE, false) == true) vm.openUpdate()
         val uri = intent?.data ?: return

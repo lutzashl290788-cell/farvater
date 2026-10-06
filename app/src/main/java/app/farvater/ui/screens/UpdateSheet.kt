@@ -21,7 +21,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,14 +31,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import app.farvater.ui.components.AppLogo
 import app.farvater.BuildConfig
-import app.farvater.R
 import app.farvater.data.UpdateInfo
 import app.farvater.ui.UpdateStage
 import app.farvater.ui.ios.IosButton
@@ -49,7 +47,6 @@ import app.farvater.ui.theme.Ios
 import app.farvater.ui.theme.IosType
 import kotlinx.coroutines.launch
 
-// лист с обновлением: что нового и кнопка установки
 @Composable
 fun UpdateSheet(info: UpdateInfo, stage: UpdateStage, onUpdate: () -> Unit, onLater: () -> Unit) {
     val c = Ios.colors
@@ -79,12 +76,7 @@ fun UpdateSheet(info: UpdateInfo, stage: UpdateStage, onUpdate: () -> Unit, onLa
                 Spacer(Modifier.height(8.dp))
                 Box(Modifier.size(36.dp, 5.dp).clip(CircleShape).background(c.tertiaryLabel))
                 Spacer(Modifier.height(24.dp))
-                Box(
-                    Modifier.size(64.dp).clip(RoundedCornerShape(15.dp)).background(if (info.critical) c.red else c.tint),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(painterResource(R.drawable.ic_beacon), contentDescription = null, tint = Color.White, modifier = Modifier.size(40.dp))
-                }
+                AppLogo(64.dp)
                 Spacer(Modifier.height(14.dp))
                 Text(
                     if (info.critical) "Важное обновление" else "Доступно обновление",

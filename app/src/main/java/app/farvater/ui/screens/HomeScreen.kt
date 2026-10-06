@@ -58,8 +58,8 @@ import app.farvater.ui.Announcement
 import app.farvater.ui.LocalBottomInset
 import app.farvater.ui.UiState
 import app.farvater.ui.components.Badge
-import app.farvater.ui.components.BeaconButton
-import app.farvater.ui.components.BeaconMode
+import app.farvater.ui.components.ConnectButton
+import app.farvater.ui.components.ConnectMode
 import app.farvater.ui.components.DelayLabel
 import app.farvater.ui.components.NodeAvatar
 import app.farvater.ui.components.Sparkline
@@ -96,18 +96,17 @@ fun HomeScreen(
 ) {
     val c = Ios.colors
     val mode = when {
-        state.progress != null -> BeaconMode.Searching
-        vpn is VpnState.Connecting -> BeaconMode.Connecting
-        vpn is VpnState.Connected -> BeaconMode.Connected
-        vpn is VpnState.Failed -> BeaconMode.Error
-        else -> BeaconMode.Idle
+        state.progress != null -> ConnectMode.Searching
+        vpn is VpnState.Connecting -> ConnectMode.Connecting
+        vpn is VpnState.Connected -> ConnectMode.Connected
+        vpn is VpnState.Failed -> ConnectMode.Error
+        else -> ConnectMode.Idle
     }
     val scroll = rememberScrollState()
     val collapsed by remember { derivedStateOf { scroll.value > 70 } }
 
-    // мягкое свечение за маяком в цвет состояния
     val glow by animateColorAsState(
-        if (mode == BeaconMode.Idle) c.tint.copy(alpha = 0.06f) else statusColor(mode).copy(alpha = 0.2f),
+        if (mode == ConnectMode.Idle) c.tint.copy(alpha = 0.06f) else statusColor(mode).copy(alpha = 0.2f),
         animationSpec = tween(700),
         label = "glow",
     )
@@ -144,7 +143,7 @@ fun HomeScreen(
             }
 
             Box(Modifier.fillMaxWidth().padding(top = 16.dp), contentAlignment = Alignment.Center) {
-                BeaconButton(mode = mode, onClick = onToggle, size = 212.dp)
+                ConnectButton(mode = mode, onClick = onToggle, size = 212.dp)
             }
 
             Spacer(Modifier.height(18.dp))
@@ -252,38 +251,38 @@ fun HomeScreen(
 }
 
 @Composable
-private fun statusColor(mode: BeaconMode): Color {
+private fun statusColor(mode: ConnectMode): Color {
     val c = Ios.colors
     return when (mode) {
-        BeaconMode.Idle -> c.secondaryLabel
-        BeaconMode.Searching, BeaconMode.Connecting -> c.tint
-        BeaconMode.Connected -> c.green
-        BeaconMode.Error -> c.red
+        ConnectMode.Idle -> c.secondaryLabel
+        ConnectMode.Searching, ConnectMode.Connecting -> c.tint
+        ConnectMode.Connected -> c.green
+        ConnectMode.Error -> c.red
     }
 }
 
-private fun shortStatus(mode: BeaconMode): String = when (mode) {
-    BeaconMode.Idle -> "Выключен"
-    BeaconMode.Searching -> "Поиск"
-    BeaconMode.Connecting -> "Подключение"
-    BeaconMode.Connected -> "Защищено"
-    BeaconMode.Error -> "Ошибка"
+private fun shortStatus(mode: ConnectMode): String = when (mode) {
+    ConnectMode.Idle -> "Выключен"
+    ConnectMode.Searching -> "Поиск"
+    ConnectMode.Connecting -> "Подключение"
+    ConnectMode.Connected -> "Защищено"
+    ConnectMode.Error -> "Ошибка"
 }
 
-private fun headline(mode: BeaconMode): String = when (mode) {
-    BeaconMode.Idle -> "Не подключено"
-    BeaconMode.Searching -> "Ищу рабочий узел"
-    BeaconMode.Connecting -> "Подключаюсь"
-    BeaconMode.Connected -> "Подключено"
-    BeaconMode.Error -> "Не удалось подключиться"
+private fun headline(mode: ConnectMode): String = when (mode) {
+    ConnectMode.Idle -> "Не подключено"
+    ConnectMode.Searching -> "Ищу рабочий узел"
+    ConnectMode.Connecting -> "Подключаюсь"
+    ConnectMode.Connected -> "Подключено"
+    ConnectMode.Error -> "Не удалось подключиться"
 }
 
-private fun supporting(mode: BeaconMode, vpn: VpnState, state: UiState): String = when (mode) {
-    BeaconMode.Idle -> "Нажмите на маяк, чтобы подключиться"
-    BeaconMode.Searching -> state.progress?.let { "Отвечают ${it.alive}" }.orEmpty()
-    BeaconMode.Connecting -> (vpn as? VpnState.Connecting)?.node?.let { splitFlag(it.name).second }.orEmpty()
-    BeaconMode.Connected -> "Трафик идёт через выбранный узел"
-    BeaconMode.Error -> (vpn as? VpnState.Failed)?.message ?: "Попробуйте другой узел"
+private fun supporting(mode: ConnectMode, vpn: VpnState, state: UiState): String = when (mode) {
+    ConnectMode.Idle -> "Нажмите кнопку, чтобы подключиться"
+    ConnectMode.Searching -> state.progress?.let { "Отвечают ${it.alive}" }.orEmpty()
+    ConnectMode.Connecting -> (vpn as? VpnState.Connecting)?.node?.let { splitFlag(it.name).second }.orEmpty()
+    ConnectMode.Connected -> "Трафик идёт через выбранный узел"
+    ConnectMode.Error -> (vpn as? VpnState.Failed)?.message ?: "Попробуйте другой узел"
 }
 
 @Composable
@@ -333,7 +332,6 @@ private fun Stat(icon: ImageVector, label: String, value: String, tint: Color, m
     }
 }
 
-// сообщения авторов подписок, текст раскрывается по нажатию
 @Composable
 private fun AnnouncementsSection(items: List<Announcement>) {
     IosSection(header = "Сообщения источников") {
@@ -350,7 +348,6 @@ private fun AnnouncementsSection(items: List<Announcement>) {
     }
 }
 
-// чем защищён канал до узла
 private fun protectionOf(node: ProxyNode): String = when {
     node.security == "reality" -> "Reality"
     node.security == "tls" || (node.protocol == Protocol.TROJAN && node.security.isBlank()) -> "TLS"

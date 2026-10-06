@@ -30,7 +30,6 @@ import app.farvater.ui.theme.Ios
 import app.farvater.ui.theme.IosType
 import app.farvater.ui.theme.Numeric
 
-// цвет задержки: зелёный, оранжевый, красный
 @Composable
 fun delayColor(result: TestResult?): Color {
     val c = Ios.colors
@@ -50,7 +49,6 @@ fun delayText(result: TestResult?): String = when {
     else -> "${result.delayMs} мс"
 }
 
-// задержка узла цветным текстом
 @Composable
 fun DelayLabel(result: TestResult?, modifier: Modifier = Modifier) {
     val color by animateColorAsState(delayColor(result), label = "delay")
@@ -63,7 +61,6 @@ fun DelayLabel(result: TestResult?, modifier: Modifier = Modifier) {
     )
 }
 
-// круглый аватар узла: флаг страны или буквы протокола
 @Composable
 fun NodeAvatar(flag: String?, node: ProxyNode, size: Dp = 36.dp) {
     val c = Ios.colors
@@ -83,10 +80,8 @@ fun NodeAvatar(flag: String?, node: ProxyNode, size: Dp = 36.dp) {
     }
 }
 
-// протокол, защита и транспорт одной строкой
 fun nodeSummary(node: ProxyNode): String = node.tags.joinToString(" · ")
 
-// компактный график скорости с заливкой
 @Composable
 fun Sparkline(values: List<Long>, color: Color, modifier: Modifier = Modifier) {
     Canvas(modifier) {
@@ -116,7 +111,6 @@ fun Sparkline(values: List<Long>, color: Color, modifier: Modifier = Modifier) {
     }
 }
 
-// маленькая плашка-метка
 @Composable
 fun Badge(text: String, color: Color, modifier: Modifier = Modifier) {
     Text(

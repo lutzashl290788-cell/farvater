@@ -57,12 +57,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
-enum class BeaconMode { Idle, Searching, Connecting, Connected, Error }
+enum class ConnectMode { Idle, Searching, Connecting, Connected, Error }
 
-// кнопка-маяк
 @Composable
-fun BeaconButton(
-    mode: BeaconMode,
+fun ConnectButton(
+    mode: ConnectMode,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     size: Dp = 208.dp,
@@ -74,8 +73,8 @@ fun BeaconButton(
     LaunchedEffect(mode) {
         if (previous != mode) {
             when (mode) {
-                BeaconMode.Connected -> haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                BeaconMode.Error -> haptics.performHapticFeedback(HapticFeedbackType.Reject)
+                ConnectMode.Connected -> haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                ConnectMode.Error -> haptics.performHapticFeedback(HapticFeedbackType.Reject)
                 else -> Unit
             }
         }
@@ -84,17 +83,17 @@ fun BeaconButton(
 
     val lamp by animateColorAsState(
         targetValue = when (mode) {
-            BeaconMode.Idle -> scheme.surfaceContainerHigh
-            BeaconMode.Searching, BeaconMode.Connecting -> scheme.primary
-            BeaconMode.Connected -> scheme.tertiary
-            BeaconMode.Error -> scheme.error
+            ConnectMode.Idle -> scheme.surfaceContainerHigh
+            ConnectMode.Searching, ConnectMode.Connecting -> scheme.primary
+            ConnectMode.Connected -> scheme.tertiary
+            ConnectMode.Error -> scheme.error
         },
         animationSpec = spring(stiffness = Spring.StiffnessLow),
         label = "lamp",
     )
     val idleRing = scheme.primary
     val glyph by animateColorAsState(
-        targetValue = if (mode == BeaconMode.Idle) scheme.primary else scheme.background,
+        targetValue = if (mode == ConnectMode.Idle) scheme.primary else scheme.background,
         label = "glyph",
     )
 
@@ -107,39 +106,37 @@ fun BeaconButton(
     )
 
     val beamStrength by animateFloatAsState(
-        targetValue = if (mode == BeaconMode.Searching || mode == BeaconMode.Connecting) 1f else 0f,
+        targetValue = if (mode == ConnectMode.Searching || mode == ConnectMode.Connecting) 1f else 0f,
         animationSpec = tween(450),
         label = "beam",
     )
-    // после подключения круги расходятся несколько раз и затихают, чтобы экран не перерисовывался без конца
     var calm by remember { mutableStateOf(false) }
     LaunchedEffect(mode) {
         calm = false
-        if (mode == BeaconMode.Connected) {
+        if (mode == ConnectMode.Connected) {
             delay(PULSE_MS * 3L)
             calm = true
         }
     }
     val ringStrength by animateFloatAsState(
         targetValue = when (mode) {
-            BeaconMode.Connected -> if (calm) 0f else 1f
-            BeaconMode.Idle -> 0f
+            ConnectMode.Connected -> if (calm) 0f else 1f
+            ConnectMode.Idle -> 0f
             else -> 0.5f
         },
         animationSpec = tween(600),
         label = "rings",
     )
-    // бесконечные анимации крутятся, только пока их видно
-    val spinning = mode == BeaconMode.Searching || mode == BeaconMode.Connecting || beamStrength > 0.01f
+    val spinning = mode == ConnectMode.Searching || mode == ConnectMode.Connecting || beamStrength > 0.01f
     val angle by loop(spinning, 1800, LinearEasing, "angle")
     val pulse by loop(ringStrength > 0.01f, PULSE_MS, FastOutSlowInEasing, "pulse")
 
     val description = when (mode) {
-        BeaconMode.Idle -> "Подключиться"
-        BeaconMode.Searching -> "Идёт поиск рабочего узла"
-        BeaconMode.Connecting -> "Подключение"
-        BeaconMode.Connected -> "Отключиться"
-        BeaconMode.Error -> "Повторить подключение"
+        ConnectMode.Idle -> "Подключиться"
+        ConnectMode.Searching -> "Идёт поиск рабочего узла"
+        ConnectMode.Connecting -> "Подключение"
+        ConnectMode.Connected -> "Отключиться"
+        ConnectMode.Error -> "Повторить подключение"
     }
 
     Box(
@@ -152,7 +149,6 @@ fun BeaconButton(
             val radius = this.size.minDimension / 2
             val lampRadius = radius * 0.6f
 
-            // свечение лампы
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(lamp.copy(alpha = 0.28f), Color.Transparent),
@@ -161,7 +157,6 @@ fun BeaconButton(
                 radius = radius,
             )
 
-            // расходящиеся круги
             if (ringStrength > 0f) {
                 for (i in 0..1) {
                     val p = (pulse + i * 0.5f) % 1f
@@ -173,7 +168,6 @@ fun BeaconButton(
                 }
             }
 
-            // вращающийся луч
             if (beamStrength > 0f) {
                 rotate(angle * 360f) {
                     drawCircle(
@@ -188,8 +182,7 @@ fun BeaconButton(
                 }
             }
 
-            // лампа погашена: тонкое янтарное кольцо зовёт нажать
-            if (mode == BeaconMode.Idle) {
+            if (mode == ConnectMode.Idle) {
                 drawCircle(
                     color = idleRing.copy(alpha = 0.45f),
                     radius = lampRadius + 7.dp.toPx(),
@@ -222,8 +215,8 @@ fun BeaconButton(
             ) { m ->
                 Icon(
                     imageVector = when (m) {
-                        BeaconMode.Searching -> Icons.Rounded.Radar
-                        BeaconMode.Error -> Icons.Rounded.ErrorOutline
+                        ConnectMode.Searching -> Icons.Rounded.Radar
+                        ConnectMode.Error -> Icons.Rounded.ErrorOutline
                         else -> Icons.Rounded.PowerSettingsNew
                     },
                     contentDescription = null,
@@ -237,7 +230,6 @@ fun BeaconButton(
 
 private const val PULSE_MS = 2600
 
-// повторяющееся значение от 0 до 1, без анимации возвращает 0
 @Composable
 private fun loop(active: Boolean, durationMs: Int, easing: Easing, label: String): State<Float> {
     if (!active) return remember { mutableFloatStateOf(0f) }
@@ -249,4 +241,3 @@ private fun loop(active: Boolean, durationMs: Int, easing: Easing, label: String
         label = label,
     )
 }
-

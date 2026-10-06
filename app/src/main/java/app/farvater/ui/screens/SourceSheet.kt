@@ -83,7 +83,6 @@ private fun hours(h: Int): String = when {
     else -> "$h часов"
 }
 
-// карточка подписки: режим сети, интервал обновления и действия
 @Composable
 fun SourceSheet(
     source: SourceUi,

@@ -19,7 +19,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// системные цвета iOS
 @Immutable
 data class IosColors(
     val dark: Boolean,
@@ -101,7 +100,6 @@ val IosLight = IosColors(
 
 val LocalIos = staticCompositionLocalOf { IosDark }
 
-// шрифтовая шкала iOS
 object IosType {
     val largeTitle = TextStyle(fontSize = 34.sp, lineHeight = 41.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.2.sp)
     val title1 = TextStyle(fontSize = 28.sp, lineHeight = 34.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.2.sp)
@@ -179,7 +177,6 @@ private val Type = Typography(
     labelSmall = IosType.caption2.copy(fontWeight = FontWeight.Medium),
 )
 
-// пружины в духе iOS: мягкая для переходов и упругая для нажатий
 object IosMotion {
     const val SoftDamping = 0.86f
     const val SoftStiffness = 300f
@@ -187,11 +184,9 @@ object IosMotion {
     const val SnappyStiffness = 520f
 }
 
-// кривые для коротких переходов
 val EaseOutQuint = CubicBezierEasing(0.22f, 1f, 0.36f, 1f)
 val EaseInOut = CubicBezierEasing(0.42f, 0f, 0.58f, 1f)
 
-// цифры одинаковой ширины
 val Numeric = TextStyle(fontFeatureSettings = "tnum")
 
 @Composable

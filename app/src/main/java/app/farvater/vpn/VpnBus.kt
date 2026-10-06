@@ -17,12 +17,9 @@ data class Traffic(
     val downTotal: Long = 0,
 )
 
-// состояние подключения
 object VpnBus {
     val state = MutableStateFlow<VpnState>(VpnState.Idle)
     val traffic = MutableStateFlow(Traffic())
-    // скорость за последние 60 секунд
     val speedHistory = MutableStateFlow<List<Long>>(emptyList())
-    // сколько проверок подряд узел не ответил
     val failedChecks = MutableStateFlow(0)
 }

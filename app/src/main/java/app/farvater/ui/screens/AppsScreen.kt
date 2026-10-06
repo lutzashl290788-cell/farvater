@@ -57,10 +57,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-// приложение с иконкой на рабочем столе
 private data class InstalledApp(val pkg: String, val label: String)
 
-// выбор приложений, которые работают мимо VPN
 @Composable
 fun BypassAppsSheet(selected: Set<String>, onChange: (Set<String>) -> Unit, onClose: () -> Unit) {
     val c = Ios.colors
@@ -68,7 +66,6 @@ fun BypassAppsSheet(selected: Set<String>, onChange: (Set<String>) -> Unit, onCl
     val pm = context.packageManager
     val scope = rememberCoroutineScope()
     var query by remember { mutableStateOf("") }
-    // порядок запоминается при открытии, чтобы строки не прыгали при переключении
     val initial = remember { selected }
     val apps by produceState<List<InstalledApp>?>(null) {
         value = withContext(Dispatchers.IO) { loadApps(pm, context.packageName, initial) }
@@ -162,7 +159,6 @@ fun BypassAppsSheet(selected: Set<String>, onChange: (Set<String>) -> Unit, onCl
     }
 }
 
-// иконка грузится в фоне и запоминается, чтобы при прокрутке не читать её заново
 @Composable
 private fun AppIcon(pkg: String, pm: PackageManager, cache: HashMap<String, ImageBitmap?>) {
     val icon by produceState(cache[pkg], pkg) {
@@ -181,7 +177,6 @@ private fun AppIcon(pkg: String, pm: PackageManager, cache: HashMap<String, Imag
     }
 }
 
-// приложения с иконкой на рабочем столе, отмеченные сверху, остальные по алфавиту
 @Suppress("DEPRECATION")
 private fun loadApps(pm: PackageManager, self: String, selected: Set<String>): List<InstalledApp> =
     pm.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0)

@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
-# скачивает ядро Xray и собирает TUN-мост
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ABIS="arm64-v8a armeabi-v7a x86_64 x86"
-# версии закреплены
 XRAY_LIB_VERSION="${XRAY_LIB_VERSION:-v26.9.30}"
 HEV_VERSION="${HEV_VERSION:-2.18.0}"
 

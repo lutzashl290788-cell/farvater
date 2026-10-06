@@ -73,13 +73,11 @@ internal enum class Tab(val title: String, val icon: ImageVector, val iconIdle: 
     Settings("Настройки", Icons.Rounded.Settings, Icons.Outlined.Settings),
 }
 
-// сколько места снизу занимает панель вкладок, экраны добавляют его к своему отступу
 val LocalBottomInset = staticCompositionLocalOf { 0.dp }
 
 private val BarHeight = 62.dp
 private val BarGap = 10.dp
 
-// оболочка с плавающей панелью вкладок
 @Composable
 internal fun FarvaterFrame(
     tab: Tab,
@@ -90,13 +88,11 @@ internal fun FarvaterFrame(
     val c = Ios.colors
     val navInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val bottomInset: Dp = navInset + BarHeight + BarGap * 2
-    // Surface задаёт цвет текста по умолчанию под тему
     Surface(color = c.background, contentColor = c.label, modifier = Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize()) {
             CompositionLocalProvider(LocalBottomInset provides bottomInset) {
                 content(WindowInsets.statusBars.asPaddingValues())
             }
-            // контент мягко уходит под панель
             Box(
                 Modifier
                     .align(Alignment.BottomCenter)
@@ -125,7 +121,6 @@ internal fun FarvaterFrame(
     }
 }
 
-// панель вкладок как в iOS 26: стеклянная капсула и скользящая подсветка
 @Composable
 private fun TabBar(current: Tab, onTab: (Tab) -> Unit, modifier: Modifier) {
     val c = Ios.colors

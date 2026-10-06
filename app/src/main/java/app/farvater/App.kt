@@ -20,7 +20,6 @@ class App : Application() {
         prefs = Prefs(this)
         repo = SubscriptionRepository(this)
         XrayEngine.init(this)
-        // локальный SOCKS ядра закрыт паролем, свои запросы через туннель Фарватер подписывает им
         Authenticator.setDefault(object : Authenticator() {
             override fun getPasswordAuthentication(): PasswordAuthentication? =
                 if (requestingProtocol?.startsWith("SOCKS") == true &&
@@ -34,9 +33,7 @@ class App : Application() {
         updates = UpdateRepository(this)
         getSystemService(NotificationManager::class.java).apply {
             createNotificationChannel(NotificationChannel(FarvaterVpnService.CHANNEL, "Подключение", NotificationManager.IMPORTANCE_LOW))
-            // высокая важность: уведомление об обновлении всплывает поверх экрана
             createNotificationChannel(NotificationChannel(UpdateWorker.CHANNEL, "Обновления", NotificationManager.IMPORTANCE_HIGH))
-            // старый канал с обычной важностью, его важность уже не поменять
             deleteNotificationChannel("updates")
         }
         UpdateWorker.schedule(this)

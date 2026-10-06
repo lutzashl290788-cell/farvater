@@ -41,7 +41,6 @@ import app.farvater.ui.theme.Ios
 import app.farvater.ui.theme.IosType
 import kotlinx.coroutines.launch
 
-// документы из папки legal
 object LegalDocs {
     const val TERMS = "terms.txt"
     const val PRIVACY = "privacy.txt"
@@ -61,7 +60,6 @@ fun LegalDocument(asset: String, onClose: () -> Unit) {
             .trim()
             .lines()
     }
-    // лист выезжает снизу и уезжает обратно при закрытии
     val slide = remember { Animatable(1f) }
     LaunchedEffect(Unit) { slide.animateTo(0f, spring(dampingRatio = 0.9f, stiffness = 300f)) }
     val close: () -> Unit = {
@@ -111,7 +109,6 @@ fun LegalDocument(asset: String, onClose: () -> Unit) {
     }
 }
 
-// строка документа: заголовок, раздел, пункт или абзац
 @Composable
 private fun DocumentLine(line: String, isTitle: Boolean) {
     val c = Ios.colors

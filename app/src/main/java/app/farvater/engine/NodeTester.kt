@@ -28,10 +28,7 @@ data class TestResult(
     val alive: Boolean get() = delayMs > 0
 }
 
-// проверка узлов из текущей сети
 object NodeTester {
-
-    // фоновые потоки с низким приоритетом: проверка не отбирает процессор у интерфейса
     private val workers = Executors.newFixedThreadPool(48) { task ->
         Thread({
             Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
@@ -42,7 +39,6 @@ object NodeTester {
     private const val TCP_CONCURRENCY = 48
     private const val TCP_TIMEOUT_MS = 2500
 
-    // два этапа: быстрый TCP-пинг отсеивает мёртвые узлы, тяжёлая проверка через ядро идёт только по живым
     fun testAll(nodes: List<ProxyNode>, url: String, concurrency: Int): Flow<TestResult> = channelFlow {
         val real = XrayEngine.isAvailable
         val tcpGate = Semaphore(TCP_CONCURRENCY)

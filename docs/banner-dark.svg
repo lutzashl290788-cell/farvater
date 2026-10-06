@@ -1,63 +1,49 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="400" viewBox="0 0 1280 400" role="img" aria-label="Фарватер">
 <defs>
-  <linearGradient id="bg" x1="0" y1="0" x2="0.35" y2="1"><stop offset="0" stop-color="#0E1626"/><stop offset="1" stop-color="#04060B"/></linearGradient>
-  <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#FFB547" stop-opacity="0.55"/><stop offset="1" stop-color="#FFB547" stop-opacity="0"/></radialGradient>
-  <linearGradient id="beamR" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFB547" stop-opacity="0.75"/><stop offset="1" stop-color="#FFB547" stop-opacity="0"/></linearGradient>
-  <linearGradient id="beamL" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stop-color="#FFB547" stop-opacity="0.6"/><stop offset="1" stop-color="#FFB547" stop-opacity="0"/></linearGradient>
-  <clipPath id="card"><rect width="1280" height="400" rx="28"/></clipPath>
-  <style>
-    .beam { transform-origin: 222px 180px; animation: sweep 6s ease-in-out infinite alternate; }
-    .lamp { animation: pulse 3s ease-in-out infinite; }
-    .w1 { animation: drift 9s linear infinite; }
-    .w2 { animation: drift 14s linear infinite reverse; }
-    .tw { animation: twinkle 4s ease-in-out infinite; }
-    @keyframes sweep { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
-    @keyframes pulse { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
-    @keyframes drift { from { transform: translateX(0); } to { transform: translateX(-160px); } }
-    @keyframes twinkle { 0%,100% { opacity: .25; } 50% { opacity: .9; } }
-    @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
-  </style>
+<linearGradient id="bg" x1="0" y1="0" x2="0.35" y2="1"><stop offset="0" stop-color="#0E1E38"/><stop offset="1" stop-color="#050A14"/></linearGradient>
+<linearGradient id="tile" x1="0" y1="0" x2="0.6" y2="1"><stop offset="0" stop-color="#173A6B"/><stop offset="1" stop-color="#081628"/></linearGradient>
+<radialGradient id="glow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#2F6FE0" stop-opacity="0.35"/><stop offset="1" stop-color="#2F6FE0" stop-opacity="0"/></radialGradient>
+<clipPath id="card"><rect width="1280" height="400" rx="28"/></clipPath>
+<clipPath id="tileclip"><rect x="0" y="0" width="200" height="200" rx="47"/></clipPath>
+<style>
+.route { stroke-dasharray: 2 18; animation: flow 3s linear infinite; }
+.b1 { animation: bob 3.2s ease-in-out infinite; }
+.b2 { animation: bob 3.6s ease-in-out infinite reverse; }
+.halo { animation: breathe 5s ease-in-out infinite; transform-origin: 236px 200px; }
+@keyframes flow { to { stroke-dashoffset: -40; } }
+@keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes breathe { 0%,100% { opacity: .7; transform: scale(1); } 50% { opacity: 1; transform: scale(1.06); } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
 </defs>
 <g clip-path="url(#card)">
-  <rect width="1280" height="400" fill="url(#bg)"/>
-  <circle class="tw" style="animation-delay:0.00s" cx="560" cy="60" r="1.4" fill="#FFFFFF"/>
-  <circle class="tw" style="animation-delay:0.37s" cx="640" cy="110" r="1" fill="#FFFFFF"/>
-  <circle class="tw" style="animation-delay:0.74s" cx="720" cy="52" r="1.6" fill="#FFFFFF"/>
-  <circle class="tw" style="animation-delay:1.11s" cx="860" cy="90" r="1.1" fill="#FFFFFF"/>
-  <circle class="tw" style="animation-delay:1.48s" cx="930" cy="40" r="1.3" fill="#FFFFFF"/>
-  <circle class="tw" style="animation-delay:1.85s" cx="1010" cy="120" r="1" fill="#FFFFFF"/>
-  <circle class="tw" style="animation-delay:2.22s" cx="1090" cy="64" r="1.5" fill="#FFFFFF"/>
-  <circle class="tw" style="animation-delay:2.59s" cx="1170" cy="104" r="1.1" fill="#FFFFFF"/>
-  <circle class="tw" style="animation-delay:2.96s" cx="1220" cy="48" r="1" fill="#FFFFFF"/>
-  <circle class="tw" style="animation-delay:3.33s" cx="780" cy="140" r="0.9" fill="#FFFFFF"/>
-  <circle class="tw" style="animation-delay:3.70s" cx="470" cy="84" r="1" fill="#FFFFFF"/>
-  <circle class="tw" style="animation-delay:4.07s" cx="1140" cy="150" r="0.9" fill="#FFFFFF"/>
-  <circle class="lamp" cx="222" cy="180" r="170" fill="url(#glow)"/>
-  <g class="beam">
-    <path d="M222 180 L1300 60 L1300 300 Z" fill="url(#beamR)" opacity="0.35"/>
-    <path d="M222 180 L-40 96 L-40 256 Z" fill="url(#beamL)" opacity="0.35"/>
-  </g>
-  <g transform="translate(60 62) scale(3)">
-    <path fill="#E6EDF3" d="M47.5,36 L60.5,36 L54,29.5 Z"/>
-    <path fill="#FFB547" d="M49,36 h10 v7 h-10 Z"/>
-    <path fill="#E6EDF3" d="M50,43 L58,43 L61.5,73 L46.5,73 Z"/>
-    <path fill="#FFB547" d="M48.4,57 L59.6,57 L60.1,62 L47.9,62 Z"/>
-    <path fill="#E6EDF3" d="M42,73 h24 v3.5 h-24 Z"/>
-  </g>
-  <g fill="none" stroke="#4FD1C5" stroke-linecap="round">
-    <path class="w1" d="M-20,300 q20.0,-9 40,0 t40,0 q20.0,-9 40,0 t40,0 q20.0,-9 40,0 t40,0 q20.0,-9 40,0 t40,0 q20.0,-9 40,0 t40,0 q20.0,-9 40,0 t40,0 q20.0,-9 40,0 t40,0 q20.0,-9 40,0 t40,0 q20.0,-9 40,0 t40,0 q20.0,-9 40,0 t40,0 q20.0,-9 40,0 t40,0 q20.0,-9 40,0 t40,0 q20.0,-9 40,0 t40,0 q20.0,-9 40,0 t40,0 q20.0,-9 40,0 t40,0 q20.0,-9 40,0 t40,0 q20.0,-9 40,0 t40,0 q20.0,-9 40,0 t40,0 q20.0,-9 40,0 t40,0 q20.0,-9 40,0 t40,0" stroke-width="5" opacity="0.95"/>
-    <path class="w2" d="M-20,330 q26.0,-7 52,0 t52,0 q26.0,-7 52,0 t52,0 q26.0,-7 52,0 t52,0 q26.0,-7 52,0 t52,0 q26.0,-7 52,0 t52,0 q26.0,-7 52,0 t52,0 q26.0,-7 52,0 t52,0 q26.0,-7 52,0 t52,0 q26.0,-7 52,0 t52,0 q26.0,-7 52,0 t52,0 q26.0,-7 52,0 t52,0 q26.0,-7 52,0 t52,0 q26.0,-7 52,0 t52,0 q26.0,-7 52,0 t52,0 q26.0,-7 52,0 t52,0" stroke-width="3.5" opacity="0.45"/>
-    <path class="w1" d="M-20,358 q32.0,-6 64,0 t64,0 q32.0,-6 64,0 t64,0 q32.0,-6 64,0 t64,0 q32.0,-6 64,0 t64,0 q32.0,-6 64,0 t64,0 q32.0,-6 64,0 t64,0 q32.0,-6 64,0 t64,0 q32.0,-6 64,0 t64,0 q32.0,-6 64,0 t64,0 q32.0,-6 64,0 t64,0 q32.0,-6 64,0 t64,0 q32.0,-6 64,0 t64,0" stroke-width="2.5" opacity="0.22"/>
-  </g>
-  <text x="470" y="160" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="104" font-weight="800" letter-spacing="-3" fill="#F4F6FA">Фарватер</text>
-  <text x="474" y="208" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="28" font-weight="500" fill="#9AA6B8">Свободный VPN-клиент для Android на ядре Xray</text>
-  <rect x="474" y="234" width="160" height="38" rx="19" fill="#FFFFFF" fill-opacity="0.07"/>
-  <text x="554" y="259" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="600" fill="#C9D2DF">Открытый код</text>
-  <rect x="644.4" y="234" width="149" height="38" rx="19" fill="#FFFFFF" fill-opacity="0.07"/>
-  <text x="719" y="259" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="600" fill="#C9D2DF">Без рекламы</text>
-  <rect x="803.5999999999999" y="234" width="160" height="38" rx="19" fill="#FFFFFF" fill-opacity="0.07"/>
-  <text x="884" y="259" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="600" fill="#C9D2DF">Без трекеров</text>
-  <rect x="973.9999999999999" y="234" width="138" height="38" rx="19" fill="#FFFFFF" fill-opacity="0.07"/>
-  <text x="1043" y="259" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="600" fill="#C9D2DF">Android 8+</text>
+<rect width="1280" height="400" fill="url(#bg)"/>
+<circle class="halo" cx="236" cy="200" r="190" fill="url(#glow)"/>
+<path class="route" d="M-20,339.0 L0,339.9 L20,341.8 L40,344.7 L60,348.2 L80,352.0 L100,355.8 L120,359.3 L140,362.2 L160,364.1 L180,365.0 L200,364.7 L220,363.3 L240,360.8 L260,357.6 L280,353.9 L300,350.1 L320,346.4 L340,343.2 L360,340.7 L380,339.3 L400,339.0 L420,339.9 L440,341.8 L460,344.7 L480,348.2 L500,352.0 L520,355.8 L540,359.3 L560,362.2 L580,364.1 L600,365.0 L620,364.7 L640,363.3 L660,360.8 L680,357.6 L700,353.9 L720,350.1 L740,346.4 L760,343.2 L780,340.7 L800,339.3 L820,339.0 L840,339.9 L860,341.8 L880,344.7 L900,348.2 L920,352.0 L940,355.8 L960,359.3 L980,362.2 L1000,364.1 L1020,365.0 L1040,364.7 L1060,363.3 L1080,360.8 L1100,357.6 L1120,353.9 L1140,350.1 L1160,346.4 L1180,343.2 L1200,340.7 L1220,339.3 L1240,339.0 L1260,339.9 L1280,341.8 L1300,344.7" fill="none" stroke="#FFFFFF" stroke-opacity="0.22" stroke-width="4" stroke-linecap="round"/>
+<rect class="b1" x="413" y="309" width="14" height="18" rx="3.5" fill="#FF453A" fill-opacity="0.85"/>
+<path class="b2" d="M560,374 L570,393 L550,393 Z" fill="#30D158" fill-opacity="0.85" stroke="#30D158" stroke-opacity="0.85" stroke-width="2" stroke-linejoin="round"/>
+<rect class="b1" x="693" y="323" width="14" height="18" rx="3.5" fill="#FF453A" fill-opacity="0.85"/>
+<path class="b2" d="M840,352 L850,371 L830,371 Z" fill="#30D158" fill-opacity="0.85" stroke="#30D158" stroke-opacity="0.85" stroke-width="2" stroke-linejoin="round"/>
+<rect class="b1" x="973" y="331" width="14" height="18" rx="3.5" fill="#FF453A" fill-opacity="0.85"/>
+<path class="b2" d="M1120,366 L1130,385 L1110,385 Z" fill="#30D158" fill-opacity="0.85" stroke="#30D158" stroke-opacity="0.85" stroke-width="2" stroke-linejoin="round"/>
+<rect class="b1" x="1253" y="309" width="14" height="18" rx="3.5" fill="#FF453A" fill-opacity="0.85"/>
+<g transform="translate(136 100)">
+<rect width="200" height="200" rx="47" fill="url(#tile)"/>
+<g clip-path="url(#tileclip)"><g transform="translate(-50 -50) scale(2.7778)"><path d="M49,81 C49,71 60,68 60,58.5 C60,50.5 54,48 54,42" fill="none" stroke="#FFFFFF" stroke-width="6.5" stroke-linecap="round"/>
+<path d="M54,28.5 L62.5,41.5 L45.5,41.5 Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+<rect x="33" y="50" width="8.5" height="11" rx="2" fill="#FF453A"/>
+<path d="M73.5,49 L79.5,60.5 L67.5,60.5 Z" fill="#30D158" stroke="#30D158" stroke-width="1.4" stroke-linejoin="round"/></g></g>
+<rect width="200" height="200" rx="47" fill="none" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="2"/>
+</g>
+<text x="400" y="178" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="104" font-weight="800" letter-spacing="-3" fill="#F4F6FA">Фарватер</text>
+<text x="404" y="226" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="28" font-weight="500" fill="#9AA6B8">Свободный VPN-клиент для Android на ядре Xray</text>
+<rect x="404" y="250" width="160" height="38" rx="19" fill="#FFFFFF" fill-opacity="0.07"/>
+<text x="484" y="275" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="600" fill="#C9D2DF">Открытый код</text>
+<rect x="574.4" y="250" width="149" height="38" rx="19" fill="#FFFFFF" fill-opacity="0.07"/>
+<text x="649" y="275" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="600" fill="#C9D2DF">Без рекламы</text>
+<rect x="733.5999999999999" y="250" width="160" height="38" rx="19" fill="#FFFFFF" fill-opacity="0.07"/>
+<text x="814" y="275" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="600" fill="#C9D2DF">Без трекеров</text>
+<rect x="903.9999999999999" y="250" width="138" height="38" rx="19" fill="#FFFFFF" fill-opacity="0.07"/>
+<text x="973" y="275" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="600" fill="#C9D2DF">Android 8+</text>
 </g>
 </svg>

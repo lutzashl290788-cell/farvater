@@ -77,7 +77,6 @@ fun SourcesScreen(
     val list = rememberLazyListState()
     val collapsed by remember { derivedStateOf { list.firstVisibleItemIndex > 0 || list.firstVisibleItemScrollOffset > 70 } }
 
-    // потянуть список вниз, чтобы обновить все подписки
     PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             state = list,
@@ -181,7 +180,6 @@ fun SourcesScreen(
     }
 
     menuFor?.let { opened ->
-        // карточка показывает свежие данные подписки, а не снимок на момент открытия
         val source = state.sources.firstOrNull { it.id == opened.id } ?: opened
         SourceSheet(
             source = source,
@@ -264,7 +262,6 @@ private fun modeFooter(choice: NetModeChoice, detected: NetMode?, detecting: Boo
     }
 }
 
-// строка состояния источника
 private fun statusText(source: SourceUi): String = "${modeShort(source.mode)} · обновление ${intervalLabel(source)}\n" + when {
     source.loading -> "Обновляю…"
     source.error != null && source.nodeCount > 0 -> "Из кэша: ${source.nodeCount} узлов, ${source.error}"

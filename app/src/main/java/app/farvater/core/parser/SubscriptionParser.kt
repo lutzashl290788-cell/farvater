@@ -7,26 +7,21 @@ data class ParsedSubscription(
     val updateIntervalHours: Int?,
     val announce: String?,
     val nodes: List<ProxyNode>,
-    // заглушки с адресом 0.0.0.0 показываются как объявления
     val notices: List<String>,
-    // строки со ссылками, которые Фарватер пока не умеет разбирать: схема и сколько раз встретилась
     val skipped: Map<String, Int> = emptyMap(),
 )
 
 object SubscriptionParser {
-
     fun parse(body: String, sourceId: String, headers: Map<String, String> = emptyMap()): ParsedSubscription {
         var text = body.trim().removePrefix("\uFEFF")
         if (!text.contains("://")) {
             Base64Util.decodeToString(text)?.takeIf { it.contains("://") }?.let { text = it }
         }
 
-        // заголовки HTTP важнее строк в теле
         val meta = headers.mapKeys { it.key.lowercase() }.toMutableMap()
         val nodes = LinkedHashMap<String, ProxyNode>()
         val notices = mutableListOf<String>()
         val skipped = HashMap<String, Int>()
-        // объявление может занимать несколько строк
         val announceLines = mutableListOf<String>()
 
         text.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }.forEach { line ->

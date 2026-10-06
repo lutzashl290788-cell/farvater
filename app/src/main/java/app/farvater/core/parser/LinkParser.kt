@@ -9,7 +9,6 @@ import kotlinx.serialization.json.jsonObject
 import java.net.URLDecoder
 import java.security.MessageDigest
 
-// разбор ссылок vless, vmess, trojan, ss и hysteria2
 object LinkParser {
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
@@ -89,12 +88,10 @@ object LinkParser {
         val credentials: String
         val hostPort: String
         if (at > 0) {
-            // формат SIP002
             val userInfo = main.substring(0, at)
             credentials = Base64Util.decodeToString(userInfo)?.takeIf { ':' in it } ?: pctDecode(userInfo)
             hostPort = main.substring(at + 1)
         } else {
-            // старый формат
             val decoded = Base64Util.decodeToString(main) ?: return null
             val a = decoded.lastIndexOf('@')
             if (a <= 0) return null
@@ -146,7 +143,6 @@ object LinkParser {
             if (k.isBlank()) null else k to v
         }.toMap()
 
-    // декодирует url, плюс остаётся плюсом
     private fun pctDecode(s: String): String =
         runCatching { URLDecoder.decode(s.replace("+", "%2B"), "UTF-8") }.getOrDefault(s)
 

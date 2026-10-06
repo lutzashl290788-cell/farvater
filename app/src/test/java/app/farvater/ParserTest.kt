@@ -12,7 +12,6 @@ import org.junit.Test
 import java.util.Base64
 
 class ParserTest {
-
     private val vless = "vless://11111111-2222-3333-4444-555555555555@95.163.1.2:443" +
         "?security=reality&sni=ok.ru&pbk=AbC-dEf_123&sid=ab12&fp=chrome&type=xhttp&path=%2Fapi&flow=" +
         "#%F0%9F%87%B7%F0%9F%87%BA%20Moscow%201"

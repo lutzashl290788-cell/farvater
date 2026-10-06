@@ -23,11 +23,9 @@ data class SourceSnapshot(
     val updatedAt: Long,
     val error: String? = null,
     val skipped: Map<String, Int> = emptyMap(),
-    // как часто обновляться, по словам самой подписки
     val intervalHours: Int? = null,
 )
 
-// загрузка подписок и офлайн-кэш
 class SubscriptionRepository(context: Context) {
     private val dir = File(context.filesDir, "subs").apply { mkdirs() }
     private val manualFile = File(dir, "${ProxyNode.MANUAL_SOURCE}.txt")
@@ -111,7 +109,6 @@ class SubscriptionRepository(context: Context) {
         loadCached(ProxyNode.MANUAL_SOURCE)
             ?: SourceSnapshot(ProxyNode.MANUAL_SOURCE, null, null, emptyList(), emptyList(), 0)
 
-    // добавляет узлы вручную, возвращает число новых
     @Synchronized
     fun appendManual(nodes: List<ProxyNode>): Int {
         val existing = loadManual().nodes.map { it.id }.toSet()

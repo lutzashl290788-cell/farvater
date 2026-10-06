@@ -53,7 +53,6 @@ fun FarvaterRoot(vm: MainViewModel) {
         AnimatedContent(
             targetState = tab,
             modifier = Modifier.padding(padding).consumeWindowInsets(padding),
-            // вкладки iOS меняются коротким растворением
             transitionSpec = { fadeIn(tween(180, easing = EaseOutQuint)) togetherWith fadeOut(tween(120)) },
             label = "tabs",
         ) { current ->

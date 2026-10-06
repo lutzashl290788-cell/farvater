@@ -67,7 +67,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -76,11 +75,11 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import app.farvater.BuildConfig
-import app.farvater.R
 import app.farvater.data.AppSettings
 import app.farvater.engine.TunBridge
 import app.farvater.engine.XrayEngine
 import app.farvater.ui.LocalBottomInset
+import app.farvater.ui.components.AppLogo
 import app.farvater.ui.ios.IosButton
 import app.farvater.ui.ios.IosButtonStyle
 import app.farvater.ui.ios.IosCompactBar
@@ -95,7 +94,6 @@ import app.farvater.ui.theme.Ios
 import app.farvater.ui.theme.IosType
 import kotlinx.coroutines.launch
 
-// варианты одновременных проверок
 private val ConcurrencyOptions = listOf(8 to "Бережно", 16 to "Обычно", 32 to "Быстро")
 
 @Suppress("DEPRECATION")
@@ -328,7 +326,6 @@ fun SettingsScreen(
     }
 }
 
-// приветствие: лист iOS выезжает снизу
 @Composable
 fun OnboardingDialog(onChoice: (enableCommunity: Boolean) -> Unit, onOpenDocument: (String) -> Unit) {
     val c = Ios.colors
@@ -361,17 +358,7 @@ fun OnboardingDialog(onChoice: (enableCommunity: Boolean) -> Unit, onOpenDocumen
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Spacer(Modifier.height(36.dp))
-                Box(
-                    Modifier.size(84.dp).clip(RoundedCornerShape(20.dp)).background(c.tint),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        painterResource(R.drawable.ic_beacon),
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(52.dp),
-                    )
-                }
+                AppLogo(84.dp)
                 Spacer(Modifier.height(20.dp))
                 Text("Добро пожаловать\nв Фарватер", style = IosType.title1, color = c.label, textAlign = TextAlign.Center)
                 Spacer(Modifier.height(28.dp))
@@ -426,10 +413,8 @@ private fun Feature(icon: ImageVector, tint: Color, title: String, text: String)
     }
 }
 
-// система не ограничивает Фарватер в фоне
 private fun Context.isBatteryUnrestricted(): Boolean =
     getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(packageName)
 
-// страница Фарватера в настройках Android, там раздел батареи
 private fun Context.appSettingsIntent(): Intent =
     Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName"))

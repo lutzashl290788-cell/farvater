@@ -55,26 +55,20 @@ data class SourceUi(
     val updatedAt: Long,
     val error: String?,
     val loading: Boolean,
-    // что скрыто из подписки и почему, например «3 Hysteria2, 2 небезопасных»
     val hidden: String? = null,
     val mode: SourceMode = SourceMode.ANY,
-    // выбранный интервал: null — авто, 0 — только вручную
     val intervalHours: Int? = null,
-    // интервал, который сообщает сама подписка
     val ownIntervalHours: Int? = null,
-    // подписка подходит к текущему режиму сети
     val inMode: Boolean = true,
 )
 
 data class TestProgress(val done: Int, val total: Int, val alive: Int)
 
-// сообщение от автора подписки
 data class Announcement(val source: String, val text: String)
 
 data class UiState(
     val settings: AppSettings = AppSettings(),
     val sources: List<SourceUi> = emptyList(),
-    // живые по задержке, потом непроверенные, потом мёртвые
     val nodes: List<ProxyNode> = emptyList(),
     val results: Map<String, TestResult> = emptyMap(),
     val selectedId: String? = null,
@@ -82,15 +76,11 @@ data class UiState(
     val refreshing: Boolean = false,
     val announcements: List<Announcement> = emptyList(),
     val message: String? = null,
-    // ссылка из диплинка ждёт подтверждения
     val pendingImport: String? = null,
-    // сколько небезопасных узлов скрыто безопасным режимом
     val hiddenInsecure: Int = 0,
-    // доступное обновление и что с ним сейчас происходит
     val update: UpdateInfo? = null,
     val updateStage: UpdateStage = UpdateStage.Idle,
     val showUpdate: Boolean = false,
-    // режим, по которому отбираются подписки; null — все подписки
     val netMode: NetMode? = null,
     val detectedMode: NetMode? = null,
     val detecting: Boolean = false,
@@ -117,7 +107,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val repo = App.repo
     private val updates = App.updates
 
-    // подписки и результаты проверок живут, пока жив процесс, и не теряются при пересоздании экрана
     private val snapshots = cachedSnapshots
     private val loading = MutableStateFlow<Set<String>>(emptySet())
     private val results = cachedResults
@@ -145,13 +134,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private var pendingNode: ProxyNode? = null
     private var testJob: Job? = null
-    // пока идёт проверка, порядок списка не меняется, чтобы строки не прыгали
     @Volatile private var testing = false
 
-    // запросы на пересчёт списка склеиваются, сам пересчёт идёт в фоне
     private val rebuildRequests = Channel<Unit>(Channel.CONFLATED)
 
-    // определённый режим сети и последние попытки обновить подписки
     @Volatile private var detected: NetMode? = prefs.lastNetMode?.let { runCatching { NetMode.valueOf(it) }.getOrNull() }
     private var detectJob: Job? = null
     private val attempts = java.util.concurrent.ConcurrentHashMap<String, Long>()
@@ -165,7 +151,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
         viewModelScope.launch { _state.collect { cachedState = it } }
         viewModelScope.launch(Dispatchers.IO) {
-            // с диска читаем, только если процесс запущен заново
             if (snapshots.value.isEmpty()) {
                 val ids = fetchTargets(includeDisabled = true).map { it.first } + ProxyNode.MANUAL_SOURCE
                 snapshots.value = ids.mapNotNull { id -> repo.loadCached(id)?.let { id to it } }.toMap()
@@ -173,7 +158,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             rebuild()
             refreshDue()
         }
-        // подписки обновляются сами, каждая со своим интервалом
         viewModelScope.launch {
             while (true) {
                 delay(DUE_CHECK_MS)
@@ -191,15 +175,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    // приложение открыли или вернули на экран: тихо проверить обновления
     fun onForeground() {
         detectNetMode()
         if (prefs.settings.autoUpdates && System.currentTimeMillis() - prefs.lastUpdateCheck > UPDATE_CHECK_GAP_MS) {
             checkUpdates(manual = false)
         }
     }
-
-    // обновления
 
     fun checkUpdates(manual: Boolean) {
         if (_state.value.updateStage is UpdateStage.Checking || _state.value.updateStage is UpdateStage.Downloading) return
@@ -208,7 +189,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             val result = updates.check(viaTunnel = VpnBus.state.value is VpnState.Connected)
             result.onSuccess { prefs.lastUpdateCheck = System.currentTimeMillis() }
             val info = result.getOrNull()
-            // о новой версии приложение само показывает «Что нового», один раз на версию
             val autoShow = !manual && info != null && info.versionCode > prefs.shownUpdateVersion
             if (autoShow && info != null) {
                 prefs.shownUpdateVersion = info.versionCode
@@ -231,7 +211,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun dismissUpdate() = _state.update { it.copy(showUpdate = false, updateStage = UpdateStage.Idle) }
 
-    // скачать, проверить и отдать системному установщику
     fun installUpdate() {
         val info = _state.value.update ?: return
         if (_state.value.updateStage is UpdateStage.Downloading) return
@@ -258,16 +237,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    // режим сети
-
-
     private fun effectiveMode(settings: AppSettings): NetMode? = when (settings.netMode) {
         NetModeChoice.WHITE -> NetMode.WHITE
         NetModeChoice.BLACK -> NetMode.BLACK
         NetModeChoice.AUTO -> detected
     }
 
-    // в режиме «Авто» определяет, какие сейчас ограничения
     fun detectNetMode(force: Boolean = false): Job? {
         if (prefs.settings.netMode != NetModeChoice.AUTO) return null
         detectJob?.takeIf { it.isActive }?.let { return it }
@@ -307,8 +282,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         refreshDue()
     }
 
-
-    // через сколько обновлять подписку, null — только вручную
     private fun intervalMs(id: String): Long? {
         val chosen = prefs.sourceConfigs[id]?.intervalHours
         if (chosen == 0) return null
@@ -320,7 +293,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val now = System.currentTimeMillis()
         val due = fetchTargets().filter { (id, _) ->
             if (id in loading.value) return@filter false
-            // неудачные попытки не повторяются чаще раза в 15 минут
             if (now - (attempts[id] ?: 0L) < RETRY_MS) return@filter false
             val snap = snapshots.value[id]
             if (snap == null || snap.updatedAt == 0L) return@filter true
@@ -357,10 +329,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         rebuild()
     }
 
-    // заголовки устройства как у Happ и v2RayTun: только для своих подписок и если пользователь не выключил
     private fun deviceHeaders(sourceId: String): Map<String, String> {
         if (sourceId in communityIds || !prefs.settings.sendHwid) return emptyMap()
-        // в заголовках допустим только ASCII, иначе запрос не уйдёт
         fun ascii(v: String?) = v.orEmpty().filter { it in ' '..'~' }.trim().ifEmpty { "unknown" }
         return mapOf(
             "x-hwid" to prefs.hwid,
@@ -372,7 +342,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     val hwid: String get() = prefs.hwid
 
-    // обновить одну подписку: из каталога или свою
     fun refreshSource(id: String) {
         val urls = BuiltInCatalog.byId(id)?.mirrors ?: prefs.userSources.firstOrNull { it.id == id }?.let { listOf(it.url) } ?: return
         viewModelScope.launch { refreshOne(id, urls, VpnBus.state.value is VpnState.Connected) }
@@ -411,7 +380,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         rebuild()
     }
 
-    // импорт из буфера или диплинка
     fun importText(text: String) {
         val trimmed = text.trim()
         if (trimmed.isEmpty()) {
@@ -464,7 +432,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             var alive = 0
             var lastFlush = 0L
             val pending = HashMap<String, TestResult>()
-            // результаты копятся пачкой и попадают в список несколько раз в секунду
             fun flush() {
                 if (pending.isNotEmpty()) {
                     val batch = HashMap(pending)
@@ -501,10 +468,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(progress = null) }
     }
 
-    // проверяет всё и подключается к лучшему узлу
     fun findWorking() {
         viewModelScope.launch {
-            // в режиме «Авто» сначала уточняем режим, чтобы проверить нужные подписки
             detectNetMode(force = true)?.join()
             findWorkingNow()
         }
@@ -578,7 +543,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val new = transform(old)
         prefs.settings = new
         rebuild()
-        // настройки туннеля применяются сразу: подключение перезапускается на том же узле
         val vpn = VpnBus.state.value
         val tunnelChanged = old.bypassApps != new.bypassApps ||
             old.directRuServices != new.directRuServices ||
@@ -586,7 +550,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (tunnelChanged && vpn is VpnState.Connected) reconnectSoon(vpn.node)
     }
 
-    // переключатели дёргают часто, поэтому перезапуск ждёт, пока пользователь закончит
     private var reconnectJob: Job? = null
     private fun reconnectSoon(node: ProxyNode) {
         reconnectJob?.cancel()
@@ -635,7 +598,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val configs = prefs.sourceConfigs
         val mode = effectiveMode(settings)
 
-        // безопасный режим фильтрует только публичные подписки: свои узлы выбирает пользователь
         fun hideInsecure(node: ProxyNode) = settings.safeMode && node.isInsecure && node.sourceId in communityIds
         fun shown(snap: SourceSnapshot?) = snap?.nodes?.count { XrayConfigBuilder.isSupported(it) && !hideInsecure(it) } ?: 0
         fun hiddenNote(snap: SourceSnapshot?): String? {
@@ -673,10 +635,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             )
         }
         val sources = (community + own).map { it.copy(inMode = it.mode.fits(mode)) }
-        // в работе только подписки, подходящие к текущему режиму сети
         val active = sources.filter { it.enabled && it.inMode }.map { it.id }.toSet() + ProxyNode.MANUAL_SOURCE
         val activeSnaps = snaps.filterKeys { it in active }.values
-        // Hysteria2 не показываем
         val supported = activeSnaps.flatMap { it.nodes }.filter(XrayConfigBuilder::isSupported).distinctBy { it.id }
         val nodes = supported.filterNot(::hideInsecure)
         val res = results.value

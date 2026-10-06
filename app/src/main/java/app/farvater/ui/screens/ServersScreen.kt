@@ -108,7 +108,6 @@ fun ServersScreen(
         }
     }
     val alive = remember(state.nodes, state.results) { state.nodes.count { state.results[it.id]?.alive == true } }
-    // узлы по подпискам в порядке вкладки «Источники», добавленные вручную в конце
     val groups = remember(visible, state.sources) {
         val order = (state.sources.map { it.id } + ProxyNode.MANUAL_SOURCE).withIndex().associate { it.value to it.index }
         visible.groupBy { it.sourceId }.entries
@@ -246,7 +245,6 @@ fun ServersScreen(
     }
 }
 
-// заголовок группы: название подписки, сколько узлов и сколько отвечают
 @Composable
 private fun GroupHeader(title: String, count: Int, alive: Int, collapsed: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val c = Ios.colors
@@ -270,7 +268,6 @@ private fun GroupHeader(title: String, count: Int, alive: Int, collapsed: Boolea
     }
 }
 
-// строка узла получает только свои данные, поэтому при смене чужого результата не перерисовывается
 @Composable
 private fun NodeRow(node: ProxyNode, result: TestResult?, selected: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
     val c = Ios.colors

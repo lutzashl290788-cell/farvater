@@ -26,7 +26,6 @@ jobs:
 
       - uses: android-actions/setup-android@v3
         with:
-          # пакета tools больше нет в SDK
           packages: platform-tools
 
       - uses: gradle/actions/setup-gradle@v4
