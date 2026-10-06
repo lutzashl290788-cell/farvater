@@ -41,6 +41,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import app.farvater.BuildConfig
 import app.farvater.ui.ios.IosSpinner
+import app.farvater.ui.ios.SectionCorner
 import app.farvater.ui.theme.Ios
 import app.farvater.ui.theme.IosType
 import kotlinx.coroutines.Dispatchers
@@ -200,7 +201,7 @@ private fun ReleaseCard(release: ChangelogRelease) {
         Column(
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(SectionCorner))
                 .background(c.cell)
                 .padding(16.dp),
         ) {

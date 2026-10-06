@@ -51,6 +51,7 @@ import app.farvater.ui.ios.IosRow
 import app.farvater.ui.ios.IosSearchField
 import app.farvater.ui.ios.IosSpinner
 import app.farvater.ui.ios.IosSwitch
+import app.farvater.ui.ios.SectionCorner
 import app.farvater.ui.theme.Ios
 import app.farvater.ui.theme.IosType
 import kotlinx.coroutines.Dispatchers
@@ -134,8 +135,8 @@ fun BypassAppsSheet(selected: Set<String>, onChange: (Set<String>) -> Unit, onCl
                         modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
                     ) {
                         itemsIndexed(shown, key = { _, app -> app.pkg }) { index, app ->
-                            val top = if (index == 0) 12.dp else 0.dp
-                            val bottom = if (index == shown.lastIndex) 12.dp else 0.dp
+                            val top = if (index == 0) SectionCorner else 0.dp
+                            val bottom = if (index == shown.lastIndex) SectionCorner else 0.dp
                             Column(
                                 Modifier
                                     .clip(RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom))

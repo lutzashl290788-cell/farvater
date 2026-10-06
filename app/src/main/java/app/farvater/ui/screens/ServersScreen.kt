@@ -67,6 +67,7 @@ import app.farvater.ui.ios.IosProgressBar
 import app.farvater.ui.ios.IosRow
 import app.farvater.ui.ios.IosSearchField
 import app.farvater.ui.ios.IosSegmented
+import app.farvater.ui.ios.SectionCorner
 import app.farvater.ui.splitFlag
 import app.farvater.ui.theme.Ios
 import app.farvater.ui.theme.IosType
@@ -192,9 +193,9 @@ fun ServersScreen(
                     if (!collapsed) {
                         itemsIndexed(nodes, key = { _, n -> n.id }, contentType = { _, _ -> "node" }) { i, node ->
                             val shape = when {
-                                nodes.size == 1 -> RoundedCornerShape(12.dp)
-                                i == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-                                i == nodes.lastIndex -> RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
+                                nodes.size == 1 -> RoundedCornerShape(SectionCorner)
+                                i == 0 -> RoundedCornerShape(topStart = SectionCorner, topEnd = SectionCorner)
+                                i == nodes.lastIndex -> RoundedCornerShape(bottomStart = SectionCorner, bottomEnd = SectionCorner)
                                 else -> RoundedCornerShape(0.dp)
                             }
                             Column(

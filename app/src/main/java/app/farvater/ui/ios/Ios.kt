@@ -38,11 +38,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Cancel
 import androidx.compose.material.icons.rounded.Search
@@ -62,6 +65,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
@@ -187,7 +191,7 @@ fun IosSection(
             Spacer(Modifier.height(20.dp))
         }
         Column(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(c.cell),
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(SectionCorner)).background(c.cell),
             content = content,
         )
         if (footer != null) {
@@ -239,7 +243,7 @@ fun IosRow(
         modifier
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.iosRowPress(onLongClick, onClick) else Modifier)
-            .heightIn(min = 46.dp)
+            .heightIn(min = 50.dp)
             .padding(start = 16.dp, end = if (chevron) 10.dp else 16.dp, top = 9.dp, bottom = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -456,7 +460,7 @@ fun IosButton(
             .heightIn(min = 50.dp)
             .graphicsLayer { alpha = if (enabled) 1f else 0.4f }
             .iosPress(enabled = enabled, onClick = onClick)
-            .clip(RoundedCornerShape(14.dp))
+            .clip(CircleShape)
             .background(bg)
             .padding(horizontal = 20.dp),
         horizontalArrangement = Arrangement.Center,
@@ -472,15 +476,67 @@ fun IosButton(
 
 @Composable
 fun IosCircleButton(icon: ImageVector, description: String, onClick: () -> Unit, tint: Color = Ios.colors.tint) {
+    val c = Ios.colors
     Box(
         Modifier
-            .size(36.dp)
+            .size(40.dp)
             .iosPress(scaleTo = 0.88f, onClick = onClick)
             .clip(CircleShape)
-            .background(tint.copy(alpha = 0.16f)),
+            .background(c.bar)
+            .border(BorderStroke(0.75.dp, glassEdge(c.dark)), CircleShape),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = description, tint = tint, modifier = Modifier.size(20.dp))
+        Icon(icon, contentDescription = description, tint = tint, modifier = Modifier.size(21.dp))
+    }
+}
+
+val SectionCorner = 20.dp
+
+fun glassEdge(dark: Boolean): Brush = Brush.verticalGradient(
+    if (dark) listOf(Color.White.copy(alpha = 0.32f), Color.White.copy(alpha = 0.06f))
+    else listOf(Color.White.copy(alpha = 0.95f), Color.Black.copy(alpha = 0.06f)),
+)
+
+@Composable
+fun IosPushedPage(
+    title: String,
+    backTitle: String,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val c = Ios.colors
+    val scroll = rememberScrollState()
+    Column(modifier.fillMaxSize().background(c.background)) {
+        Box(Modifier.fillMaxWidth().height(52.dp)) {
+            Row(
+                Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 6.dp)
+                    .iosPress(scaleTo = 0.94f, onClick = onBack)
+                    .padding(horizontal = 6.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
+                    contentDescription = "Назад",
+                    tint = c.tint,
+                    modifier = Modifier.size(30.dp),
+                )
+                Text(backTitle, style = IosType.body, color = c.tint, maxLines = 1)
+            }
+            Text(
+                title,
+                style = IosType.headline,
+                color = c.label,
+                maxLines = 1,
+                modifier = Modifier.align(Alignment.Center).padding(horizontal = 120.dp),
+            )
+            if (scroll.value > 4) {
+                HorizontalDivider(Modifier.align(Alignment.BottomCenter), thickness = 0.5.dp, color = c.separator)
+            }
+        }
+        Column(Modifier.fillMaxSize().verticalScroll(scroll), content = content)
     }
 }
 
@@ -603,7 +659,7 @@ fun IosGlass(modifier: Modifier = Modifier, shape: androidx.compose.ui.graphics.
         modifier = modifier,
         shape = shape,
         color = c.bar,
-        border = BorderStroke(0.5.dp, c.barBorder),
+        border = BorderStroke(0.75.dp, glassEdge(c.dark)),
         shadowElevation = 16.dp,
         content = content,
     )
