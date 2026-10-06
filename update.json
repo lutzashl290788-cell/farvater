@@ -1,33 +1,33 @@
 {
-  "versionCode": 10005,
-  "versionName": "1.0.5",
+  "versionCode": 10006,
+  "versionName": "1.0.6",
   "published": "06.10.2026",
-  "critical": false,
+  "critical": true,
   "notes": [
-    "Новая настройка «Приложения мимо VPN»: выберите любые приложения, которые будут работать напрямую",
-    "Банковские приложения больше не исключаются из VPN автоматически, отметьте нужные сами",
-    "Изменения настроек подключения применяются сразу, без переподключения вручную"
+    "Исправлено: уведомление о новой версии могло не приходить",
+    "Пока VPN включён, обновления проверяются надёжнее и не зависят от экономии энергии",
+    "При открытии приложения новая версия сама показывает окно «Что нового»"
   ],
   "assets": {
     "arm64-v8a": {
-      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.5/Farvater-1.0.5-arm64-v8a.apk",
-      "sha256": "c23573094fb8ef7a1a7796403eef3c027026dee31e1e3b759a62c03cd3cb7ac1",
-      "size": 21212107
+      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.6/Farvater-1.0.6-arm64-v8a.apk",
+      "sha256": "73de245e81b598ae54edeba1dc08ceaef08cdeb030862afee623eaf1ec874d54",
+      "size": 21212515
     },
     "armeabi-v7a": {
-      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.5/Farvater-1.0.5-armeabi-v7a.apk",
-      "sha256": "1d1d240cfb353c68977c5fcb9a4389f9f6f9fb1e61dc13f95c4d3ff3848ee240",
-      "size": 21722265
+      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.6/Farvater-1.0.6-armeabi-v7a.apk",
+      "sha256": "3a2d0c5d6156f508d93bdd215c0f45287dc60854b57a07e6aa3dcb7f9d90855d",
+      "size": 21722673
     },
     "universal": {
-      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.5/Farvater-1.0.5-universal.apk",
-      "sha256": "5109964ef3cf76eefafe34a3dcfcb78b2431cb5f675bf4e2cc3b26498b26f7d9",
-      "size": 47437760
+      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.6/Farvater-1.0.6-universal.apk",
+      "sha256": "778086fd085772da1f81ef9842010e81c591cdaaeea15413a4cc58e66f5b7434",
+      "size": 47438168
     },
     "x86_64": {
-      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.5/Farvater-1.0.5-x86_64.apk",
-      "sha256": "b8758086a42b27ad6995e36591ba1feba81b60451e09851d398bf053ad932ee2",
-      "size": 22233826
+      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.6/Farvater-1.0.6-x86_64.apk",
+      "sha256": "538ba14a025fc1442cb58031f65ec6448baea301b231e222d8625313b5ead09b",
+      "size": 22234230
     }
   }
 }
