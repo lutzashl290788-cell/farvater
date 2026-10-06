@@ -29,6 +29,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountBalance
+import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.Autorenew
 import androidx.compose.material.icons.rounded.Code
@@ -115,6 +116,7 @@ fun SettingsScreen(
     val scroll = rememberScrollState()
     val collapsed by remember { derivedStateOf { scroll.value > 70 } }
     val divider = 59.dp
+    var showApps by remember { mutableStateOf(false) }
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
@@ -122,13 +124,22 @@ fun SettingsScreen(
 
             IosSection(
                 header = "Подключение",
-                footer = "Госуслуги, банки, Яндекс, VK и маркетплейсы работают напрямую, как без VPN.",
+                footer = "Сайты Госуслуг, банков, Яндекса, VK и маркетплейсов открываются напрямую, как без VPN.",
             ) {
                 IosRow(
                     title = "Банки и госсервисы",
                     icon = Icons.Rounded.AccountBalance,
                     iconTint = c.green,
                     trailing = { IosSwitch(settings.directRuServices, { v -> onChange { it.copy(directRuServices = v) } }) },
+                )
+                IosDivider(start = divider)
+                IosRow(
+                    title = "Приложения мимо VPN",
+                    icon = Icons.Rounded.Apps,
+                    iconTint = c.indigo,
+                    value = if (settings.bypassApps.isEmpty()) "нет" else settings.bypassApps.size.toString(),
+                    chevron = true,
+                    onClick = { showApps = true },
                 )
                 IosDivider(start = divider)
                 IosRow(
@@ -220,12 +231,13 @@ fun SettingsScreen(
                 }
                 IosRow(
                     title = "Работа в фоне",
-                    subtitle = "Чтобы Android не останавливал VPN, когда приложение закрыто",
+                    subtitle = "Чтобы Android не останавливал VPN. В настройках Фарватера откройте «Батарея» и выберите «Без ограничений»",
+                    subtitleLines = 3,
                     icon = Icons.Rounded.BatteryChargingFull,
                     iconTint = c.green,
                     value = if (unrestricted) "разрешена" else "ограничена",
                     chevron = !unrestricted,
-                    onClick = { runCatching { context.startActivity(context.batteryIntent(unrestricted)) } },
+                    onClick = { runCatching { context.startActivity(context.appSettingsIntent()) } },
                 )
             }
 
@@ -305,6 +317,14 @@ fun SettingsScreen(
             Spacer(Modifier.height(20.dp + LocalBottomInset.current))
         }
         IosCompactBar("Настройки", visible = collapsed)
+    }
+
+    if (showApps) {
+        BypassAppsSheet(
+            selected = settings.bypassApps,
+            onChange = { apps -> onChange { it.copy(bypassApps = apps) } },
+            onClose = { showApps = false },
+        )
     }
 }
 
@@ -410,8 +430,6 @@ private fun Feature(icon: ImageVector, tint: Color, title: String, text: String)
 private fun Context.isBatteryUnrestricted(): Boolean =
     getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(packageName)
 
-// без ограничений: открыть общий список, иначе спросить разрешение для Фарватера
-@Suppress("BatteryLife")
-private fun Context.batteryIntent(unrestricted: Boolean): Intent =
-    if (unrestricted) Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
-    else Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName"))
+// страница Фарватера в настройках Android, там раздел батареи
+private fun Context.appSettingsIntent(): Intent =
+    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName"))

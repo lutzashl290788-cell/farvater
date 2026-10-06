@@ -452,8 +452,26 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun updateSettings(transform: (AppSettings) -> AppSettings) {
-        prefs.settings = transform(prefs.settings)
+        val old = prefs.settings
+        val new = transform(old)
+        prefs.settings = new
         rebuild()
+        // настройки туннеля применяются сразу: подключение перезапускается на том же узле
+        val vpn = VpnBus.state.value
+        val tunnelChanged = old.bypassApps != new.bypassApps ||
+            old.directRuServices != new.directRuServices ||
+            old.encryptedDns != new.encryptedDns
+        if (tunnelChanged && vpn is VpnState.Connected) reconnectSoon(vpn.node)
+    }
+
+    // переключатели дёргают часто, поэтому перезапуск ждёт, пока пользователь закончит
+    private var reconnectJob: Job? = null
+    private fun reconnectSoon(node: ProxyNode) {
+        reconnectJob?.cancel()
+        reconnectJob = viewModelScope.launch {
+            delay(RECONNECT_DELAY_MS)
+            if (VpnBus.state.value is VpnState.Connected) connect(node)
+        }
     }
 
     fun finishOnboarding(enableCommunity: Boolean) {
@@ -583,6 +601,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         private const val UPDATE_CHECK_GAP_MS = 5 * 60 * 1000L
         private const val REBUILD_GAP_MS = 150L
         private const val FLUSH_MS = 300L
+        private const val RECONNECT_DELAY_MS = 1200L
 
         private val cachedSnapshots = MutableStateFlow<Map<String, SourceSnapshot>>(emptyMap())
         private val cachedResults = MutableStateFlow<Map<String, TestResult>>(emptyMap())

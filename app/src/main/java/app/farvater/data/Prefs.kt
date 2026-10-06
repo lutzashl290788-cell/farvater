@@ -29,11 +29,8 @@ data class AppSettings(
     val sendHwid: Boolean = true,
     // проверять обновления в фоне и присылать уведомление
     val autoUpdates: Boolean = true,
-    // приложения мимо VPN
-    val bypassApps: Set<String> = setOf(
-        "ru.sberbankmobile", "ru.vtb24.mobilebanking.android", "com.idamob.tinkoff.android",
-        "ru.alfabank.mobile.android", "ru.rostel",
-    ),
+    // приложения мимо VPN, выбирает пользователь
+    val bypassApps: Set<String> = emptySet(),
 )
 
 @Serializable

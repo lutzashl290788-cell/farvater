@@ -6,18 +6,15 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- просьба не останавливать VPN в фоне -->
-    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- установка скачанного обновления -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
-    <!-- приложения, которые идут мимо VPN -->
+    <!-- список приложений с рабочего стола, чтобы пользователь выбрал, какие пустить мимо VPN -->
     <queries>
-        <package android:name="ru.sberbankmobile" />
-        <package android:name="ru.vtb24.mobilebanking.android" />
-        <package android:name="com.idamob.tinkoff.android" />
-        <package android:name="ru.alfabank.mobile.android" />
-        <package android:name="ru.rostel" />
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
     </queries>
 
     <application
