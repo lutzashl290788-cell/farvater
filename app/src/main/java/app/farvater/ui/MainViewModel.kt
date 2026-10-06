@@ -164,7 +164,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             VpnBus.state.collect { if (it is VpnState.Failed) toast(it.message) }
         }
-        // тихая проверка обновлений при запуске, не чаще раза в 5 минут
+    }
+
+    // приложение открыли или вернули на экран: тихо проверить обновления
+    fun onForeground() {
         if (prefs.settings.autoUpdates && System.currentTimeMillis() - prefs.lastUpdateCheck > UPDATE_CHECK_GAP_MS) {
             checkUpdates(manual = false)
         }
@@ -179,7 +182,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             val result = updates.check(viaTunnel = VpnBus.state.value is VpnState.Connected)
             result.onSuccess { prefs.lastUpdateCheck = System.currentTimeMillis() }
             val info = result.getOrNull()
-            _state.update { it.copy(update = info, updateStage = UpdateStage.Idle, showUpdate = it.showUpdate || (manual && info != null)) }
+            // о новой версии приложение само показывает «Что нового», один раз на версию
+            val autoShow = !manual && info != null && info.versionCode > prefs.shownUpdateVersion
+            if (autoShow && info != null) {
+                prefs.shownUpdateVersion = info.versionCode
+                prefs.notifiedVersion = maxOf(prefs.notifiedVersion, info.versionCode)
+            }
+            _state.update {
+                it.copy(update = info, updateStage = UpdateStage.Idle, showUpdate = it.showUpdate || autoShow || (manual && info != null))
+            }
             when {
                 !manual -> Unit
                 result.isFailure -> toast("Не удалось проверить обновления: сервер недоступен")
@@ -598,7 +609,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     companion object {
         private val communityIds = BuiltInCatalog.sources.map { it.id }.toSet()
         private const val STALE_MS = 6 * 60 * 60 * 1000L
-        private const val UPDATE_CHECK_GAP_MS = 5 * 60 * 1000L
+        private const val UPDATE_CHECK_GAP_MS = 60 * 1000L
         private const val REBUILD_GAP_MS = 150L
         private const val FLUSH_MS = 300L
         private const val RECONNECT_DELAY_MS = 1200L

@@ -19,6 +19,7 @@ import app.farvater.MainActivity
 import app.farvater.R
 import app.farvater.core.model.ProxyNode
 import app.farvater.core.xray.XrayConfigBuilder
+import app.farvater.data.UpdateWorker
 import app.farvater.engine.TunBridge
 import app.farvater.engine.XrayEngine
 import app.farvater.ui.formatSpeed
@@ -48,6 +49,8 @@ class FarvaterVpnService : VpnService() {
         private const val MTU = 8500
         // как часто проверять, отвечает ли узел, в секундах
         private const val PROBE_EVERY = 60
+        // как часто искать обновления, пока VPN работает
+        private const val UPDATE_GAP_MS = 15 * 60 * 1000L
 
         fun start(context: Context, node: ProxyNode) {
             App.prefs.lastNode = node
@@ -63,6 +66,7 @@ class FarvaterVpnService : VpnService() {
     private var tun: ParcelFileDescriptor? = null
     private var monitor: Job? = null
     private var lastNotificationText: String? = null
+    private var lastUpdateAttempt = 0L
 
     // экран выключен: статистику никто не видит, а лишние запросы будят радио и садят батарею
     private val screenOn = MutableStateFlow(true)
@@ -154,6 +158,7 @@ class FarvaterVpnService : VpnService() {
                 lastRx = -1L
                 // после включения экрана узел проверяется почти сразу
                 tick = PROBE_EVERY - 3
+                maybeCheckUpdates()
             }
             delay(1000)
             tick++
@@ -176,8 +181,18 @@ class FarvaterVpnService : VpnService() {
             if (tick % PROBE_EVERY == 0) {
                 failures = if (probe()) 0 else failures + 1
                 VpnBus.failedChecks.value = failures
+                maybeCheckUpdates()
             }
         }
+    }
+
+    // системный планировщик на многих телефонах откладывает фоновые задачи,
+    // поэтому, пока VPN работает, обновления ищет сам сервис
+    private fun maybeCheckUpdates() {
+        val now = System.currentTimeMillis()
+        if (now - maxOf(App.prefs.lastUpdateCheck, lastUpdateAttempt) < UPDATE_GAP_MS) return
+        lastUpdateAttempt = now
+        scope.launch { UpdateWorker.checkAndNotify(applicationContext) }
     }
 
     private fun probe(): Boolean = runCatching {

@@ -83,6 +83,11 @@ class Prefs(context: Context) {
         get() = sp.getInt("notified_version", 0)
         set(value) = sp.edit().putInt("notified_version", value).apply()
 
+    // для какой версии уже показали окно «Что нового» внутри приложения
+    var shownUpdateVersion: Int
+        get() = sp.getInt("shown_update_version", 0)
+        set(value) = sp.edit().putInt("shown_update_version", value).apply()
+
     var selectedNodeId: String?
         get() = sp.getString("selected_node", null)
         set(value) = sp.edit().putString("selected_node", value).apply()

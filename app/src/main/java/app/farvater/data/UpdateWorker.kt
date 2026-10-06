@@ -23,14 +23,7 @@ import java.util.concurrent.TimeUnit
 class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
-        if (!App.prefs.settings.autoUpdates) return Result.success()
-        val info = App.updates.check(viaTunnel = VpnBus.state.value is VpnState.Connected).getOrNull()
-            ?: return Result.success()
-        App.prefs.lastUpdateCheck = System.currentTimeMillis()
-        // об одной версии напоминаем один раз
-        if (App.prefs.notifiedVersion >= info.versionCode) return Result.success()
-        App.prefs.notifiedVersion = info.versionCode
-        notify(applicationContext, info)
+        checkAndNotify(applicationContext)
         return Result.success()
     }
 
@@ -38,6 +31,18 @@ class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         const val CHANNEL = "updates_alert"
         const val EXTRA_OPEN_UPDATE = "app.farvater.OPEN_UPDATE"
         private const val NOTIFICATION_ID = 21
+
+        // проверка и уведомление, общие для фоновой задачи и VPN-сервиса
+        suspend fun checkAndNotify(context: Context) {
+            if (!App.prefs.settings.autoUpdates) return
+            val result = App.updates.check(viaTunnel = VpnBus.state.value is VpnState.Connected)
+            if (result.isSuccess) App.prefs.lastUpdateCheck = System.currentTimeMillis()
+            val info = result.getOrNull() ?: return
+            // об одной версии напоминаем один раз
+            if (App.prefs.notifiedVersion >= info.versionCode) return
+            App.prefs.notifiedVersion = info.versionCode
+            notify(context, info)
+        }
 
         fun schedule(context: Context) {
             val request = PeriodicWorkRequestBuilder<UpdateWorker>(15, TimeUnit.MINUTES)

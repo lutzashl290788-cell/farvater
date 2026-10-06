@@ -56,6 +56,11 @@ class MainActivity : ComponentActivity() {
         setContent { FarvaterTheme { FarvaterRoot(vm) } }
     }
 
+    override fun onStart() {
+        super.onStart()
+        vm.onForeground()
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleDeepLink(intent)
