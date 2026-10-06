@@ -37,6 +37,7 @@ import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Dns
 import androidx.compose.material.icons.rounded.Fingerprint
 import androidx.compose.material.icons.rounded.GppGood
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Memory
@@ -115,6 +116,7 @@ fun SettingsScreen(
     val collapsed by remember { derivedStateOf { scroll.value > 70 } }
     val divider = 59.dp
     var showApps by remember { mutableStateOf(false) }
+    var showChangelog by remember { mutableStateOf(false) }
     val bypassCount = remember(settings.bypassApps) { context.installedCount(settings.bypassApps) }
 
     Box(Modifier.fillMaxSize()) {
@@ -290,6 +292,14 @@ fun SettingsScreen(
                 )
                 IosDivider(start = divider)
                 IosRow(
+                    title = "История изменений",
+                    icon = Icons.Rounded.History,
+                    iconTint = c.indigo,
+                    chevron = true,
+                    onClick = { showChangelog = true },
+                )
+                IosDivider(start = divider)
+                IosRow(
                     title = "Проверять автоматически",
                     subtitle = "Уведомлять о новых версиях и срочных исправлениях",
                     icon = Icons.Rounded.NotificationsActive,
@@ -317,6 +327,8 @@ fun SettingsScreen(
         }
         IosCompactBar("Настройки", visible = collapsed)
     }
+
+    if (showChangelog) ChangelogSheet(onClose = { showChangelog = false })
 
     if (showApps) {
         BypassAppsSheet(

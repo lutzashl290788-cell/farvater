@@ -1,0 +1,236 @@
+package app.farvater.ui.screens
+
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import app.farvater.BuildConfig
+import app.farvater.ui.ios.IosSpinner
+import app.farvater.ui.theme.Ios
+import app.farvater.ui.theme.IosType
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+data class ChangelogGroup(val title: String, val items: List<String>)
+
+data class ChangelogRelease(val version: String, val date: String?, val intro: List<String>, val groups: List<ChangelogGroup>)
+
+private val ReleaseHeader = Regex("""^## \[(.+?)\](?:\s+—\s+(\d{4})-(\d{2})-(\d{2}))?""")
+
+private val Months = listOf(
+    "января", "февраля", "марта", "апреля", "мая", "июня",
+    "июля", "августа", "сентября", "октября", "ноября", "декабря",
+)
+
+private fun plain(text: String): String = text.replace("`", "").replace("**", "").trim()
+
+fun parseChangelog(text: String): List<ChangelogRelease> {
+    val releases = mutableListOf<ChangelogRelease>()
+    var version: String? = null
+    var date: String? = null
+    val intro = mutableListOf<String>()
+    val groups = mutableListOf<ChangelogGroup>()
+    var groupTitle: String? = null
+    val items = mutableListOf<String>()
+
+    fun closeGroup() {
+        val title = groupTitle ?: return
+        if (items.isNotEmpty()) groups += ChangelogGroup(title, items.toList())
+        groupTitle = null
+        items.clear()
+    }
+
+    fun closeRelease() {
+        closeGroup()
+        val v = version ?: return
+        if (groups.isNotEmpty() || intro.isNotEmpty()) releases += ChangelogRelease(v, date, intro.toList(), groups.toList())
+        version = null
+        date = null
+        intro.clear()
+        groups.clear()
+    }
+
+    for (raw in text.lines()) {
+        val line = raw.trim()
+        val header = ReleaseHeader.find(line)
+        when {
+            header != null -> {
+                closeRelease()
+                val name = header.groupValues[1]
+                if (name.first().isDigit()) {
+                    version = name
+                    date = header.groupValues[2].takeIf { it.isNotEmpty() }?.let {
+                        val month = header.groupValues[3].toInt()
+                        "${header.groupValues[4].toInt()} ${Months[month - 1]} $it"
+                    }
+                }
+            }
+            version == null -> Unit
+            line.startsWith("### ") -> {
+                closeGroup()
+                groupTitle = line.removePrefix("### ").trim()
+            }
+            line.startsWith("- ") && groupTitle != null -> items += plain(line.removePrefix("- "))
+            line.startsWith("[") || line.isEmpty() -> Unit
+            groupTitle == null -> intro += plain(line)
+        }
+    }
+    closeRelease()
+    return releases
+}
+
+@Composable
+fun ChangelogSheet(onClose: () -> Unit) {
+    val c = Ios.colors
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val releases by produceState<List<ChangelogRelease>?>(null) {
+        value = withContext(Dispatchers.IO) {
+            runCatching { parseChangelog(context.assets.open("CHANGELOG.md").bufferedReader().use { it.readText() }) }
+                .getOrDefault(emptyList())
+        }
+    }
+    val slide = remember { Animatable(1f) }
+    LaunchedEffect(Unit) { slide.animateTo(0f, spring(dampingRatio = 0.9f, stiffness = 300f)) }
+    val close: () -> Unit = {
+        scope.launch {
+            slide.animateTo(1f, spring(dampingRatio = 1f, stiffness = 520f))
+            onClose()
+        }
+    }
+
+    Dialog(onDismissRequest = close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f * (1f - slide.value)))) {
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(top = 10.dp)
+                    .graphicsLayer { translationY = size.height * slide.value }
+                    .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
+                    .background(c.background),
+            ) {
+                Box(Modifier.fillMaxWidth().height(52.dp)) {
+                    Text("История изменений", style = IosType.headline, color = c.label, modifier = Modifier.align(Alignment.Center))
+                    Text(
+                        "Готово",
+                        style = IosType.body.copy(fontWeight = FontWeight.SemiBold),
+                        color = c.tint,
+                        modifier = Modifier.align(Alignment.CenterEnd).clickable(onClick = close).padding(horizontal = 16.dp, vertical = 12.dp),
+                    )
+                }
+                HorizontalDivider(thickness = 0.5.dp, color = c.separator)
+
+                val list = releases
+                when {
+                    list == null -> Box(Modifier.fillMaxWidth().padding(top = 40.dp), contentAlignment = Alignment.Center) { IosSpinner() }
+                    list.isEmpty() -> Text(
+                        "Не удалось прочитать историю изменений.",
+                        style = IosType.body,
+                        color = c.secondaryLabel,
+                        modifier = Modifier.padding(32.dp),
+                    )
+                    else -> LazyColumn(
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 40.dp),
+                        modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
+                    ) {
+                        items(list, key = { it.version }) { release -> ReleaseCard(release) }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReleaseCard(release: ChangelogRelease) {
+    val c = Ios.colors
+    val installed = release.version == BuildConfig.VERSION_NAME
+    Column(Modifier.padding(top = 16.dp)) {
+        Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Версия ${release.version}", style = IosType.headline, color = c.label)
+            if (installed) {
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "установлена",
+                    style = IosType.caption1,
+                    color = c.tint,
+                    modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(c.tint.copy(alpha = 0.15f)).padding(horizontal = 6.dp, vertical = 2.dp),
+                )
+            }
+            Spacer(Modifier.weight(1f))
+            release.date?.let { Text(it, style = IosType.footnote, color = c.secondaryLabel) }
+        }
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(c.cell)
+                .padding(16.dp),
+        ) {
+            release.intro.forEach {
+                Text(it, style = IosType.subheadline, color = c.secondaryLabel)
+                Spacer(Modifier.height(8.dp))
+            }
+            release.groups.forEachIndexed { i, group ->
+                if (i > 0) Spacer(Modifier.height(12.dp))
+                Text(group.title.uppercase(), style = IosType.footnote.copy(fontWeight = FontWeight.SemiBold), color = groupColor(group.title))
+                Spacer(Modifier.height(6.dp))
+                group.items.forEach { item ->
+                    Row(Modifier.padding(vertical = 3.dp)) {
+                        Text("•", style = IosType.subheadline, color = groupColor(group.title))
+                        Spacer(Modifier.width(8.dp))
+                        Text(item, style = IosType.subheadline, color = c.label)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun groupColor(title: String): Color {
+    val c = Ios.colors
+    return when (title) {
+        "Добавлено" -> c.green
+        "Исправлено" -> c.blue
+        "Удалено" -> c.red
+        else -> c.tint
+    }
+}
