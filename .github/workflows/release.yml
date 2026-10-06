@@ -76,6 +76,13 @@ jobs:
           done
           (cd dist && sha256sum *.apk > SHA256SUMS.txt)
           APKSIGNER=$(ls -d "$ANDROID_SDK_ROOT"/build-tools/*/ | sort -V | tail -1)apksigner
+          # каждый APK должен быть подписан схемами v1, v2 и v3, иначе часть установщиков его отклонит
+          for apk in dist/*.apk; do
+            schemes="$("$APKSIGNER" verify --verbose "$apk")"
+            for v in v1 v2 v3; do
+              grep -q "Verified using $v scheme.*: true" <<<"$schemes" || { echo "::error::$apk не подписан схемой $v"; exit 1; }
+            done
+          done
           CERT=$("$APKSIGNER" verify --print-certs dist/*universal*.apk | grep -m1 'SHA-256' | awk '{print toupper($NF)}' | sed 's/../&:/g; s/:$//')
           python3 scripts/make-update-json.py "$VERSION" "$GITHUB_REPOSITORY" "$TAG" release-notes.txt dist > dist/update.json
           cat dist/update.json

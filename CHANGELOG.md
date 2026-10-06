@@ -4,6 +4,17 @@
 
 ## [Не выпущено]
 
+## [1.0.7] — 2026-10-06
+
+### Исправлено
+
+- На некоторых телефонах APK не устанавливался: он был подписан только схемой v2, а установщики части прошивок требуют старую подпись v1. Теперь APK подписан схемами v1, v2 и v3, а релизная сборка проверяет это перед публикацией.
+
+### Добавлено
+
+- Поддержка 32-битных процессоров Intel (x86): отдельный APK и поддержка в `universal`.
+- Раздел README «Приложение не устанавливается» с решениями для Samsung, Xiaomi, Huawei и Honor.
+
 ## [1.0.6] — 2026-10-06
 
 Срочное исправление.
@@ -86,7 +97,8 @@
 - Интерфейс в стиле iOS, светлая и тёмная темы.
 - Импорт подписки по ссылке `farvater://import`.
 
-[Не выпущено]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.6...HEAD
+[Не выпущено]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.7...HEAD
+[1.0.7]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.3...v1.0.4

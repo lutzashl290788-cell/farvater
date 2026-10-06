@@ -54,13 +54,11 @@ jobs:
           done
           # без ядра и TUN-моста VPN не работает
           listing="$(unzip -l app/build/outputs/apk/debug/*universal*.apk)"
-          for abi in arm64-v8a armeabi-v7a x86_64; do
+          for abi in arm64-v8a armeabi-v7a x86_64 x86; do
             for lib in libgojni.so libhev-socks5-tunnel.so; do
               grep -q "lib/$abi/$lib" <<<"$listing" || { echo "::error::В APK нет $abi/$lib"; exit 1; }
             done
           done
-          # папка x86 без TUN-моста ломает VPN
-          if grep -q "lib/x86/" <<<"$listing"; then echo "::error::В APK попала папка lib/x86"; exit 1; fi
 
       - uses: actions/upload-artifact@v4
         with:

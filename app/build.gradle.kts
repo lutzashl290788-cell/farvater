@@ -43,6 +43,10 @@ android {
                 keyAlias = env("FARVATER_KEY_ALIAS") ?: signingProps.getProperty("keyAlias") ?: "farvater"
                 keyPassword = env("FARVATER_KEY_PASSWORD") ?: signingProps.getProperty("keyPassword") ?: password
             }
+            // все три схемы подписи: установщики некоторых прошивок отклоняют APK только с v2
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
         }
     }
 
@@ -61,7 +65,7 @@ android {
         abi {
             isEnable = true
             reset()
-            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            include("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
             isUniversalApk = true
         }
     }
@@ -83,9 +87,9 @@ android {
     packaging {
         jniLibs {
             useLegacyPackaging = true
-            // под x86 нет TUN-моста
-            excludes += "lib/x86/**"
         }
+        // служебный файл одной из библиотек, в приложении он не нужен
+        resources.excludes += "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
     }
 }
 
