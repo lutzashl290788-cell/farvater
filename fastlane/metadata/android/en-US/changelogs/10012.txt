@@ -1,0 +1,1 @@
+- UDP over the local proxy is now bound to a pre-announced port, so other apps cannot hijack it to learn the server address

@@ -35,7 +35,7 @@ jobs:
           path: |
             app/libs/libv2ray.aar
             app/src/main/jniLibs
-          key: natives-${{ env.NDK_VERSION }}-${{ hashFiles('scripts/fetch-natives.sh') }}
+          key: natives-${{ env.NDK_VERSION }}-${{ hashFiles('scripts/fetch-natives.sh', 'scripts/hev-udp-bind.patch') }}
 
       - name: NDK
         if: steps.natives.outputs.cache-hit != 'true'

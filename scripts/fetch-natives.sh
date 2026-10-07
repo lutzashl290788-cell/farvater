@@ -14,6 +14,7 @@ echo "TUN-мост (hev-socks5-tunnel $HEV_VERSION)"
 WORK="$(mktemp -d)"
 git clone --depth 1 --branch "$HEV_VERSION" --recursive --shallow-submodules \
   https://github.com/heiher/hev-socks5-tunnel "$WORK/jni"
+patch -p1 -d "$WORK/jni" < "$ROOT/scripts/hev-udp-bind.patch"
 (
   cd "$WORK"
   "$ANDROID_NDK_HOME/ndk-build" \
