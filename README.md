@@ -212,7 +212,7 @@ sha256sum --check --ignore-missing SHA256SUMS.txt
 
 Проверить вручную: **Настройки → Обновления → Проверить обновления**. Там же **История изменений**: все версии с 1.0.0, что в каждой добавлено, исправлено и удалено. Она хранится внутри приложения и открывается без интернета.
 
-Следить за версиями можно и через [Obtainium](https://github.com/ImranR98/Obtainium): [добавить Фарватер в Obtainium](https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/lutzashl290788-cell/farvater) или вставьте в него ссылку на этот репозиторий. Описание и скриншоты для каталогов приложений лежат в `fastlane/metadata/android`.
+Следить за версиями можно и через [Obtainium](https://github.com/ImranR98/Obtainium): [добавить Фарватер в Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium%3A%2F%2Fadd%2Fhttps%3A%2F%2Fgithub.com%2Flutzashl290788-cell%2Ffarvater) или вставьте в него ссылку на этот репозиторий. Описание и скриншоты для каталогов приложений лежат в `fastlane/metadata/android`.
 
 > [!NOTE]
 > Тестовые сборки из GitHub Actions подписаны другим ключом. Если у вас стоит такая сборка, удалите её перед установкой релиза. Иначе Android откажется ставить новую версию поверх.
