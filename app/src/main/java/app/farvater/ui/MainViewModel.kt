@@ -23,6 +23,7 @@ import app.farvater.engine.NetModeDetector
 import app.farvater.engine.NodeTester
 import app.farvater.engine.TestMethod
 import app.farvater.engine.TestResult
+import app.farvater.net.SafeHttp
 import app.farvater.vpn.FarvaterVpnService
 import app.farvater.vpn.VpnBus
 import app.farvater.vpn.VpnState
@@ -363,6 +364,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             toast("Это не ссылка на подписку: нужен адрес, начинающийся с https://")
             return
         }
+        if (SafeHttp.parse(clean) == null) {
+            toast("Такой адрес подписки нельзя добавить")
+            return
+        }
         if (prefs.userSources.any { it.url == clean }) {
             toast("Эта подписка уже добавлена")
             return
@@ -386,6 +391,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             toast("Буфер обмена пуст")
             return
         }
+        if (trimmed.length > MAX_IMPORT) {
+            toast("Слишком много текста для импорта")
+            return
+        }
         if (trimmed.lines().size == 1 && (trimmed.startsWith("https://") || trimmed.startsWith("http://"))) {
             addSubscription(trimmed)
             return
@@ -404,6 +413,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun requestImport(text: String) = _state.update { it.copy(pendingImport = text) }
+    fun rejectImport() = toast("Ссылка для импорта повреждена или не поддерживается")
     fun confirmImport() {
         val text = _state.value.pendingImport ?: return
         _state.update { it.copy(pendingImport = null) }
@@ -694,6 +704,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         private const val DEFAULT_INTERVAL_H = 6
         private const val DUE_CHECK_MS = 5 * 60 * 1000L
         private const val RETRY_MS = 15 * 60 * 1000L
+        private const val MAX_IMPORT = 2 * 1024 * 1024
         private const val DETECT_GAP_MS = 60 * 1000L
         @Volatile private var lastDetect = 0L
         private const val UPDATE_CHECK_GAP_MS = 60 * 1000L

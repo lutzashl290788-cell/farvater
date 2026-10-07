@@ -109,13 +109,20 @@ class FarvaterVpnService : VpnService() {
     }
 
     private fun connectLocked(node: ProxyNode) {
+        val previous = tun
+        tun = null
         teardown()
         VpnBus.state.value = VpnState.Connecting(node)
         val settings = App.prefs.settings
 
+        fun abort(message: String) {
+            runCatching { previous?.close() }
+            fail(message, node)
+        }
+
         val config = XrayConfigBuilder.build(node, settings.directRuServices, encryptedDns = settings.encryptedDns)
-            ?: return fail("${node.protocol.title} пока не поддерживается — выберите другой узел", node)
-        XrayEngine.start(config).onFailure { return fail("Ядро не запустилось: ${it.message}", node) }
+            ?: return abort("${node.protocol.title} пока не поддерживается — выберите другой узел")
+        XrayEngine.start(config).onFailure { return abort("Ядро не запустилось: ${it.message}") }
 
         val builder = Builder()
             .setSession(node.name)
@@ -127,8 +134,9 @@ class FarvaterVpnService : VpnService() {
         settings.bypassApps.forEach { pkg -> runCatching { builder.addDisallowedApplication(pkg) } }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) builder.setMetered(false)
 
-        val fd = builder.establish() ?: return fail("Нет разрешения на VPN", node)
+        val fd = builder.establish() ?: return abort("Нет разрешения на VPN")
         tun = fd
+        runCatching { previous?.close() }
         TunBridge.start(this, fd.fd, MTU).onFailure { return fail("TUN не запустился: ${it.message}", node) }
 
         VpnBus.state.value = VpnState.Connected(node, System.currentTimeMillis())

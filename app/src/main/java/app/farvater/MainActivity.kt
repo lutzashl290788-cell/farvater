@@ -15,6 +15,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import app.farvater.data.UpdateWorker
+import app.farvater.net.ImportLink
 import app.farvater.ui.MainViewModel
 import app.farvater.ui.FarvaterRoot
 import app.farvater.ui.UiEvent
@@ -69,7 +70,8 @@ class MainActivity : ComponentActivity() {
         if (intent?.getBooleanExtra(UpdateWorker.EXTRA_OPEN_UPDATE, false) == true) vm.openUpdate()
         val uri = intent?.data ?: return
         if (uri.scheme == "farvater" && uri.host == "import") {
-            uri.getQueryParameter("url")?.takeIf { it.isNotBlank() }?.let(vm::requestImport)
+            val link = runCatching { uri.getQueryParameter("url") }.getOrNull()
+            ImportLink.sanitize(link)?.let(vm::requestImport) ?: vm.rejectImport()
         }
     }
 }

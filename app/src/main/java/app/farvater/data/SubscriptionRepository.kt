@@ -5,11 +5,14 @@ import app.farvater.BuildConfig
 import app.farvater.core.model.ProxyNode
 import app.farvater.core.parser.SubscriptionParser
 import app.farvater.core.xray.XrayConfigBuilder
+import app.farvater.net.SafeHttp
+import app.farvater.net.SafeHttp.hardened
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
-import okhttp3.Request
+import okhttp3.ResponseBody
 import java.io.File
+import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.util.concurrent.TimeUnit
@@ -34,6 +37,7 @@ class SubscriptionRepository(context: Context) {
         .connectTimeout(8, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
         .callTimeout(25, TimeUnit.SECONDS)
+        .hardened()
         .build()
 
     private val tunnelClient by lazy {
@@ -53,17 +57,17 @@ class SubscriptionRepository(context: Context) {
             var lastError: String? = null
             for (url in urls) {
                 try {
-                    val request = Request.Builder()
-                        .url(url)
-                        .header("User-Agent", "Farvater/${BuildConfig.VERSION_NAME}")
-                        .apply { extraHeaders.forEach { (k, v) -> header(k, v) } }
-                        .build()
-                    client.newCall(request).execute().use { response ->
+                    val target = SafeHttp.parse(url) ?: throw IOException("недопустимый адрес подписки")
+                    SafeHttp.execute(
+                        client, target,
+                        headers = mapOf("User-Agent" to "Farvater/${BuildConfig.VERSION_NAME}"),
+                        privateHeaders = extraHeaders,
+                    ).use { response ->
                         if (!response.isSuccessful) {
                             lastError = "HTTP ${response.code}"
                             return@use
                         }
-                        val body = response.body?.string().orEmpty()
+                        val body = response.body?.let(::readLimited).orEmpty()
                         val headers = response.headers.toMultimap().mapValues { it.value.firstOrNull().orEmpty() }
                         val parsed = SubscriptionParser.parse(body, sourceId, headers)
                         if (parsed.nodes.isEmpty() && parsed.notices.isEmpty()) {
@@ -92,6 +96,13 @@ class SubscriptionRepository(context: Context) {
             cached?.copy(error = lastError)
                 ?: SourceSnapshot(sourceId, null, null, emptyList(), emptyList(), 0, error = lastError)
         }
+
+    private fun readLimited(body: ResponseBody): String {
+        if (body.contentLength() > MAX_BODY) throw IOException("подписка больше ${MAX_BODY / 1024 / 1024} МБ")
+        val source = body.source()
+        if (source.request(MAX_BODY + 1)) throw IOException("подписка больше ${MAX_BODY / 1024 / 1024} МБ")
+        return source.buffer.readUtf8()
+    }
 
     fun loadCached(sourceId: String): SourceSnapshot? {
         val file = File(dir, "$sourceId.txt")
@@ -125,5 +136,9 @@ class SubscriptionRepository(context: Context) {
     fun deleteCache(sourceId: String) {
         File(dir, "$sourceId.txt").delete()
         File(dir, "$sourceId.interval").delete()
+    }
+
+    companion object {
+        const val MAX_BODY = 8L * 1024 * 1024
     }
 }

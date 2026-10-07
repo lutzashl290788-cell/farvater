@@ -2,6 +2,8 @@ package app.farvater.data
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageInfo
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -43,6 +45,7 @@ class UpdateRepository(private val context: Context) {
     private val baseClient = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
+        .followSslRedirects(false)
         .build()
 
     private val tunnelClient by lazy {
@@ -83,7 +86,8 @@ class UpdateRepository(private val context: Context) {
         withContext(Dispatchers.IO) {
             runCatching {
                 val asset = info.assetForDevice() ?: error("в релизе нет APK для этого телефона")
-                val target = File(dir, "farvater-${info.versionName}.apk")
+                if (!asset.url.startsWith("https://")) error("ссылка на APK должна быть https")
+                val target = File(dir, "farvater-${info.versionCode}.apk")
                 dir.listFiles()?.filter { it != target }?.forEach { it.delete() }
                 val client = if (viaTunnel) tunnelClient else baseClient
                 val request = Request.Builder().url(asset.url).header("User-Agent", "Farvater/${BuildConfig.VERSION_NAME}").build()
@@ -112,9 +116,33 @@ class UpdateRepository(private val context: Context) {
                     target.delete()
                     error("файл повреждён или подменён: контрольная сумма не совпала")
                 }
+                runCatching { verifyApk(target, info) }.onFailure { target.delete() }.getOrThrow()
                 target
             }
         }
+
+    @Suppress("DEPRECATION")
+    private fun verifyApk(apk: File, info: UpdateInfo) {
+        val pm = context.packageManager
+        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) PackageManager.GET_SIGNING_CERTIFICATES else PackageManager.GET_SIGNATURES
+        val archive = pm.getPackageArchiveInfo(apk.path, flags) ?: error("скачанный файл не является APK")
+        if (archive.packageName != context.packageName) error("APK от другого приложения")
+        if (archive.longVersionCode != info.versionCode.toLong()) error("версия APK не совпадает с объявленной")
+        val installed = pm.getPackageInfo(context.packageName, flags)
+        val expected = signers(installed)
+        if (expected.isEmpty() || signers(archive) != expected) error("APK подписан чужим ключом")
+    }
+
+    @Suppress("DEPRECATION")
+    private fun signers(info: PackageInfo): Set<String> {
+        val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            info.signingInfo?.apkContentsSigners
+        } else {
+            info.signatures
+        }
+        val sha = MessageDigest.getInstance("SHA-256")
+        return signatures.orEmpty().map { sig -> sha.digest(sig.toByteArray()).joinToString("") { "%02x".format(it) } }.toSet()
+    }
 
     fun canInstall(): Boolean = context.packageManager.canRequestPackageInstalls()
 
