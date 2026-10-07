@@ -1,0 +1,4 @@
+- Node switching without traffic leaking outside the VPN
+- Safer subscription loading: no https to http redirects, no access to localhost, HWID is not sent to other hosts
+- APK signature check before installing an update
+- Strict validation of farvater://import links

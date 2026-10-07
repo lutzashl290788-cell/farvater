@@ -1,0 +1,34 @@
+Farvater connects your phone to your own server or to one from a subscription and routes all app traffic through it. All you need is a subscription link: the app finds the fastest responding node by itself. Russian government, banking, Yandex and VK services are routed directly.
+
+<b>Connection</b>
+<ul>
+<li>One-tap connect with automatic selection of the fastest node.</li>
+<li>Automatic switch to another node when the current one stops responding.</li>
+<li>Speed, session time and transport security on the home screen.</li>
+</ul>
+
+<b>Subscriptions</b>
+<ul>
+<li>Your own subscriptions by URL and single nodes from the clipboard.</li>
+<li>Whitelist and blacklist network modes: each subscription has its own mode, and the Auto mode detects network restrictions by itself.</li>
+<li>Per-subscription update interval.</li>
+<li>Optional HWID for panels that limit the number of devices, sent only to your own subscriptions.</li>
+</ul>
+
+<b>Routing</b>
+<ul>
+<li>Russian services and local networks bypass the tunnel.</li>
+<li>Any app can be excluded from the VPN.</li>
+<li>IPv6 is blocked, DNS goes over DoH inside the tunnel by default.</li>
+</ul>
+
+<b>Security</b>
+<ul>
+<li>The local proxy listens on 127.0.0.1 only and requires a random password.</li>
+<li>No analytics, ads or trackers.</li>
+<li>Updates are verified by SHA-256 and APK signature.</li>
+</ul>
+
+Protocols: VLESS (including Reality and XHTTP), VMess, Trojan, Shadowsocks. Core: Xray-core, tunnel: hev-socks5-tunnel.
+
+Farvater does not provide any servers. The source code is available under GPL-3.0. The interface is in Russian.
