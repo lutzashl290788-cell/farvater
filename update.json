@@ -1,36 +1,37 @@
 {
-  "versionCode": 10012,
-  "versionName": "1.0.12",
-  "published": "07.10.2026",
+  "versionCode": 10013,
+  "versionName": "1.0.13",
+  "published": "08.10.2026",
   "critical": false,
   "notes": [
-    "Защита UDP через локальный прокси: чужое приложение на телефоне не может перехватить канал и узнать адрес сервера"
+    "Новый дизайн Liquid Glass: живое стекло на панели вкладок и в шапках",
+    "Компактная кнопка подключения"
   ],
   "assets": {
     "arm64-v8a": {
-      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.12/Farvater-1.0.12-arm64-v8a.apk",
-      "sha256": "e602a204a7837368a81932b053f27589da39f36bf95e372c3e0ee3e9b4fcd807",
-      "size": 21265801
+      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.13/Farvater-1.0.13-arm64-v8a.apk",
+      "sha256": "14ac43dd111f5bbe0cdf017c263aa5b952f35b7f3b75d4d45e317578ea2c779d",
+      "size": 21272879
     },
     "armeabi-v7a": {
-      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.12/Farvater-1.0.12-armeabi-v7a.apk",
-      "sha256": "c5fb926ef0831cf573f49eb7d4c584db929ea0fe277c029b16078d95ceb8c983",
-      "size": 21775995
+      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.13/Farvater-1.0.13-armeabi-v7a.apk",
+      "sha256": "265943d882e39f52117cb427ca45028bede17c164c35ee0b1cd48e3542e86614",
+      "size": 21783081
     },
     "universal": {
-      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.12/Farvater-1.0.12-universal.apk",
-      "sha256": "0a0c7ba6ef7255bb7d7e9d4043e95b47c77750fe43a3ae52e16c767410fdf13c",
-      "size": 61377756
+      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.13/Farvater-1.0.13-universal.apk",
+      "sha256": "684b6f25cd39c8f3a654914bbd8800f034a09383986902bcfd3c75438902f8f5",
+      "size": 61384866
     },
     "x86": {
-      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.12/Farvater-1.0.12-x86.apk",
-      "sha256": "7ae42918dde0455cfb24d638e6af0c353e80a369d86b9fa58ebd9a6e11859298",
-      "size": 22804011
+      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.13/Farvater-1.0.13-x86.apk",
+      "sha256": "e98fdf8822cc9d14b7aab46604a0fc39351df2a1b122ac9dfdad493d167a3a68",
+      "size": 22811099
     },
     "x86_64": {
-      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.12/Farvater-1.0.12-x86_64.apk",
-      "sha256": "9b26594b9ba717575c6f87180b07ff1dad25df226afa105c25dd90d0fc17716a",
-      "size": 22287579
+      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.13/Farvater-1.0.13-x86_64.apk",
+      "sha256": "a8efe5914e93e739d2ddc64640b8a016a19710ee1e3576a2cbce17ab7c6b3e27",
+      "size": 22294670
     }
   }
 }
