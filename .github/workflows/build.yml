@@ -69,9 +69,11 @@ jobs:
           done
 
       - uses: actions/upload-artifact@v4
+        if: ${{ !github.event.repository.private }}
         with:
           name: farvater-debug
           path: app/build/outputs/apk/debug/*.apk
+          retention-days: 14
 
   release-check:
     if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
