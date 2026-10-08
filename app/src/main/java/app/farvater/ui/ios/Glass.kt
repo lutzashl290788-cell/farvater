@@ -109,7 +109,7 @@ fun Modifier.liquidGlass(
     val solid = if (fallback.isSpecified) fallback else c.bar
     val rim = glassRim(c.dark)
     val sheen = if (c.dark) Color.White.copy(alpha = 0.07f) else Color.White.copy(alpha = 0.28f)
-    val shadowColor = Color.Black.copy(alpha = if (c.dark) 0.5f else 0.18f)
+    val shadowColor = Color.Black.copy(alpha = if (c.dark) 0.5f else 0.26f)
 
     this
         .then(
@@ -166,7 +166,7 @@ fun Modifier.liquidGlass(
 }
 
 fun glassTint(dark: Boolean): Color =
-    if (dark) Color(0xFF1C1C1E).copy(alpha = 0.42f) else Color.White.copy(alpha = 0.52f)
+    if (dark) Color(0xFF1C1C1E).copy(alpha = 0.5f) else Color.White.copy(alpha = 0.66f)
 
 fun glassControlFill(dark: Boolean): Color =
     if (dark) Color.White.copy(alpha = 0.13f) else Color.White.copy(alpha = 0.92f)
@@ -182,9 +182,9 @@ fun glassRim(dark: Boolean): List<Color> =
     } else {
         listOf(
             Color.White,
-            Color.White.copy(alpha = 0.45f),
+            Color.White.copy(alpha = 0.55f),
             Color.Black.copy(alpha = 0.05f),
-            Color.White.copy(alpha = 0.8f),
+            Color.Black.copy(alpha = 0.09f),
         )
     }
 
