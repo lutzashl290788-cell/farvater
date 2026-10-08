@@ -31,6 +31,7 @@ import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -260,7 +261,14 @@ private fun GroupHeader(title: String, count: Int, alive: Int, collapsed: Boolea
             .padding(start = 32.dp, end = 24.dp, top = 18.dp, bottom = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(title.uppercase(), style = IosType.footnote, color = c.secondaryLabel, maxLines = 1, modifier = Modifier.weight(1f))
+        val material = Ios.material
+        Text(
+            if (material) title else title.uppercase(),
+            style = if (material) MaterialTheme.typography.titleSmall else IosType.footnote,
+            color = if (material) c.tint else c.secondaryLabel,
+            maxLines = 1,
+            modifier = Modifier.weight(1f),
+        )
         Text(if (alive > 0) "$alive из $count" else "$count", style = IosType.footnote, color = c.secondaryLabel)
         Spacer(Modifier.width(4.dp))
         Icon(
