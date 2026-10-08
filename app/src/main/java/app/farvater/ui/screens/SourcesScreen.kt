@@ -41,6 +41,8 @@ import app.farvater.ui.ios.AlertRole
 import app.farvater.ui.ios.IosAlert
 import app.farvater.ui.ios.IosCircleButton
 import app.farvater.ui.ios.IosCompactBar
+import app.farvater.ui.ios.glassSource
+import app.farvater.ui.ios.rememberGlassBackdrop
 import app.farvater.ui.ios.IosDivider
 import app.farvater.ui.ios.IosLargeTitle
 import app.farvater.ui.ios.IosRow
@@ -77,10 +79,11 @@ fun SourcesScreen(
     val list = rememberLazyListState()
     val collapsed by remember { derivedStateOf { list.firstVisibleItemIndex > 0 || list.firstVisibleItemScrollOffset > 70 } }
 
+    val backdrop = rememberGlassBackdrop()
     PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             state = list,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().glassSource(backdrop),
             contentPadding = PaddingValues(bottom = 20.dp + LocalBottomInset.current),
         ) {
             item(key = "title") {
@@ -176,7 +179,7 @@ fun SourcesScreen(
                 }
             }
         }
-        IosCompactBar("Источники", visible = collapsed)
+        IosCompactBar("Источники", visible = collapsed, backdrop = backdrop)
     }
 
     menuFor?.let { opened ->

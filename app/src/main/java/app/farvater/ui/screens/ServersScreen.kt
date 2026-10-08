@@ -61,6 +61,8 @@ import app.farvater.ui.ios.AlertRole
 import app.farvater.ui.ios.IosAlert
 import app.farvater.ui.ios.IosCircleButton
 import app.farvater.ui.ios.IosCompactBar
+import app.farvater.ui.ios.glassSource
+import app.farvater.ui.ios.rememberGlassBackdrop
 import app.farvater.ui.ios.IosDivider
 import app.farvater.ui.ios.IosLargeTitle
 import app.farvater.ui.ios.IosProgressBar
@@ -118,10 +120,11 @@ fun ServersScreen(
     var collapsedIds by rememberSaveable { mutableStateOf(listOf<String>()) }
     val searching = query.isNotBlank()
 
+    val backdrop = rememberGlassBackdrop()
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
             state = list,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().glassSource(backdrop),
             contentPadding = PaddingValues(bottom = 20.dp + LocalBottomInset.current),
         ) {
             item(key = "title") {
@@ -219,7 +222,7 @@ fun ServersScreen(
                 }
             }
         }
-        IosCompactBar("Узлы", visible = collapsed)
+        IosCompactBar("Узлы", visible = collapsed, backdrop = backdrop)
     }
 
     menuFor?.let { node ->

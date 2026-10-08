@@ -69,6 +69,8 @@ import app.farvater.ui.formatSpeed
 import app.farvater.ui.ios.IosButton
 import app.farvater.ui.ios.IosButtonStyle
 import app.farvater.ui.ios.IosCompactBar
+import app.farvater.ui.ios.glassSource
+import app.farvater.ui.ios.rememberGlassBackdrop
 import app.farvater.ui.ios.IosDivider
 import app.farvater.ui.ios.IosLargeTitle
 import app.farvater.ui.ios.IosProgressBar
@@ -111,16 +113,18 @@ fun HomeScreen(
         label = "glow",
     )
 
+    val backdrop = rememberGlassBackdrop()
     Box(Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .glassSource(backdrop)
                 .verticalScroll(scroll)
                 .drawBehind {
                     drawRect(
                         Brush.radialGradient(
                             listOf(glow, Color.Transparent),
-                            center = Offset(size.width / 2, 220.dp.toPx()),
+                            center = Offset(size.width / 2, 190.dp.toPx()),
                             radius = size.width * 0.8f,
                         ),
                     )
@@ -142,11 +146,11 @@ fun HomeScreen(
                 }
             }
 
-            Box(Modifier.fillMaxWidth().padding(top = 16.dp), contentAlignment = Alignment.Center) {
-                ConnectButton(mode = mode, onClick = onToggle, size = 212.dp)
+            Box(Modifier.fillMaxWidth().padding(top = 4.dp), contentAlignment = Alignment.Center) {
+                ConnectButton(mode = mode, onClick = onToggle, size = 184.dp)
             }
 
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(8.dp))
             AnimatedContent(
                 targetState = mode,
                 transitionSpec = {
@@ -246,7 +250,7 @@ fun HomeScreen(
 
             Spacer(Modifier.height(24.dp + LocalBottomInset.current))
         }
-        IosCompactBar("Фарватер", visible = collapsed)
+        IosCompactBar("Фарватер", visible = collapsed, backdrop = backdrop)
     }
 }
 

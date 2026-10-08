@@ -99,6 +99,8 @@ import app.farvater.ui.components.AppLogo
 import app.farvater.ui.ios.IosButton
 import app.farvater.ui.ios.IosButtonStyle
 import app.farvater.ui.ios.IosCompactBar
+import app.farvater.ui.ios.glassSource
+import app.farvater.ui.ios.rememberGlassBackdrop
 import app.farvater.ui.ios.IosDivider
 import app.farvater.ui.ios.IosLargeTitle
 import app.farvater.ui.ios.IosPushedPage
@@ -210,8 +212,9 @@ private fun SettingsRoot(
     }
     val complete = XrayEngine.isAvailable && TunBridge.isAvailable
 
+    val backdrop = rememberGlassBackdrop()
     Box(Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
+        Column(Modifier.fillMaxSize().glassSource(backdrop).verticalScroll(scroll)) {
             IosLargeTitle("Настройки")
 
             IosSection {
@@ -318,7 +321,7 @@ private fun SettingsRoot(
             }
             Spacer(Modifier.height(20.dp + LocalBottomInset.current))
         }
-        IosCompactBar("Настройки", visible = collapsed)
+        IosCompactBar("Настройки", visible = collapsed, backdrop = backdrop)
     }
 }
 

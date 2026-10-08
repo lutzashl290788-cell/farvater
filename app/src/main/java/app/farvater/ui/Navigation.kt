@@ -62,7 +62,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import app.farvater.ui.ios.IosGlass
+import app.farvater.ui.ios.GlassBackdrop
+import app.farvater.ui.ios.GlassStyles
+import app.farvater.ui.ios.glassSource
+import app.farvater.ui.ios.liquidGlass
+import app.farvater.ui.ios.rememberGlassBackdrop
 import app.farvater.ui.theme.Ios
 import app.farvater.ui.theme.IosType
 
@@ -88,20 +92,27 @@ internal fun FarvaterFrame(
     val c = Ios.colors
     val navInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val bottomInset: Dp = navInset + BarHeight + BarGap * 2
+    val backdrop = rememberGlassBackdrop()
     Surface(color = c.background, contentColor = c.label, modifier = Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize()) {
-            CompositionLocalProvider(LocalBottomInset provides bottomInset) {
-                content(WindowInsets.statusBars.asPaddingValues())
+            Box(Modifier.fillMaxSize().background(c.background).glassSource(backdrop)) {
+                CompositionLocalProvider(LocalBottomInset provides bottomInset) {
+                    content(WindowInsets.statusBars.asPaddingValues())
+                }
             }
             Box(
                 Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .height(bottomInset + 12.dp)
-                    .background(Brush.verticalGradient(listOf(Color.Transparent, c.background.copy(alpha = 0.9f)))),
+                    .height(navInset + BarHeight + BarGap)
+                    .background(Brush.verticalGradient(listOf(Color.Transparent, c.background.copy(alpha = 0.72f)))),
             )
             SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = bottomInset)) { data ->
-                IosGlass(shape = RoundedCornerShape(16.dp), modifier = Modifier.padding(horizontal = 24.dp)) {
+                Box(
+                    Modifier
+                        .padding(horizontal = 24.dp)
+                        .liquidGlass(backdrop, RoundedCornerShape(18.dp), GlassStyles.Toast),
+                ) {
                     Text(
                         data.visuals.message,
                         style = IosType.subheadline,
@@ -113,6 +124,7 @@ internal fun FarvaterFrame(
             TabBar(
                 current = tab,
                 onTab = onTab,
+                backdrop = backdrop,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(start = 20.dp, end = 20.dp, bottom = navInset + BarGap),
@@ -122,10 +134,10 @@ internal fun FarvaterFrame(
 }
 
 @Composable
-private fun TabBar(current: Tab, onTab: (Tab) -> Unit, modifier: Modifier) {
+private fun TabBar(current: Tab, onTab: (Tab) -> Unit, backdrop: GlassBackdrop, modifier: Modifier) {
     val c = Ios.colors
     val haptics = LocalHapticFeedback.current
-    IosGlass(modifier = modifier.fillMaxWidth().height(BarHeight)) {
+    Box(modifier.fillMaxWidth().height(BarHeight).liquidGlass(backdrop, CircleShape, GlassStyles.Bar)) {
         BoxWithConstraints(Modifier.fillMaxSize().padding(4.dp)) {
             val item = maxWidth / Tab.entries.size
             val lensX by animateDpAsState(
@@ -138,7 +150,7 @@ private fun TabBar(current: Tab, onTab: (Tab) -> Unit, modifier: Modifier) {
                     .offset { IntOffset(lensX.roundToPx(), 0) }
                     .width(item)
                     .fillMaxHeight()
-                    .background(c.fill.copy(alpha = if (c.dark) 0.75f else 0.85f), CircleShape),
+                    .background(if (c.dark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.06f), CircleShape),
             )
             Row(Modifier.fillMaxSize()) {
                 Tab.entries.forEach { t ->

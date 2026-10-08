@@ -43,11 +43,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
@@ -55,6 +58,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.farvater.ui.ios.glassRim
+import app.farvater.ui.theme.Ios
 import kotlinx.coroutines.delay
 
 enum class ConnectMode { Idle, Searching, Connecting, Connected, Error }
@@ -64,10 +69,12 @@ fun ConnectButton(
     mode: ConnectMode,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    size: Dp = 208.dp,
+    size: Dp = 184.dp,
 ) {
     val scheme = MaterialTheme.colorScheme
     val haptics = LocalHapticFeedback.current
+    val dark = Ios.colors.dark
+    val rim = glassRim(dark)
 
     var previous by remember { mutableStateOf(mode) }
     LaunchedEffect(mode) {
@@ -189,10 +196,39 @@ fun ConnectButton(
                     style = Stroke(width = 1.5.dp.toPx()),
                 )
             }
-            drawCircle(color = lamp, radius = lampRadius)
+            val c = center
             drawCircle(
-                color = Color.White.copy(alpha = 0.10f),
+                brush = Brush.radialGradient(
+                    listOf(lerp(lamp, Color.White, 0.22f), lamp, lerp(lamp, Color.Black, 0.14f)),
+                    center = c + Offset(-lampRadius * 0.35f, -lampRadius * 0.45f),
+                    radius = lampRadius * 1.7f,
+                ),
                 radius = lampRadius,
+            )
+            drawCircle(
+                brush = Brush.radialGradient(
+                    listOf(Color.White.copy(alpha = 0.16f), Color.Transparent),
+                    center = c + Offset(0f, lampRadius * 0.62f),
+                    radius = lampRadius * 0.62f,
+                ),
+                radius = lampRadius,
+            )
+            drawOval(
+                brush = Brush.verticalGradient(
+                    listOf(Color.White.copy(alpha = if (dark) 0.30f else 0.55f), Color.Transparent),
+                    startY = c.y - lampRadius * 0.94f,
+                    endY = c.y - lampRadius * 0.05f,
+                ),
+                topLeft = Offset(c.x - lampRadius * 0.7f, c.y - lampRadius * 0.94f),
+                size = Size(lampRadius * 1.4f, lampRadius * 0.86f),
+            )
+            drawCircle(
+                brush = Brush.linearGradient(
+                    rim,
+                    start = Offset(c.x - lampRadius, c.y - lampRadius),
+                    end = Offset(c.x + lampRadius, c.y + lampRadius),
+                ),
+                radius = lampRadius - 0.75.dp.toPx(),
                 style = Stroke(width = 1.5.dp.toPx()),
             )
         }
@@ -221,7 +257,7 @@ fun ConnectButton(
                     },
                     contentDescription = null,
                     tint = glyph,
-                    modifier = Modifier.size(56.dp),
+                    modifier = Modifier.size(50.dp),
                 )
             }
         }

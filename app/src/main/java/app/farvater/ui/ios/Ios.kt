@@ -11,7 +11,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -65,8 +64,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
@@ -153,11 +152,21 @@ fun IosLargeTitle(
 }
 
 @Composable
-fun IosCompactBar(title: String, visible: Boolean, modifier: Modifier = Modifier) {
+fun IosCompactBar(title: String, visible: Boolean, modifier: Modifier = Modifier, backdrop: GlassBackdrop? = null) {
     val c = Ios.colors
     val p by animateFloatAsState(if (visible) 1f else 0f, tween(180), label = "bar")
     if (p == 0f) return
-    Column(modifier.fillMaxWidth().graphicsLayer { alpha = p }.background(c.bar)) {
+    Column(
+        modifier
+            .fillMaxWidth()
+            .graphicsLayer { alpha = p }
+            .liquidGlass(
+                backdrop,
+                RectangleShape,
+                GlassStyles.Chrome,
+                tint = c.background.copy(alpha = if (c.dark) 0.55f else 0.6f),
+            ),
+    ) {
         Box(Modifier.fillMaxWidth().height(44.dp), contentAlignment = Alignment.Center) {
             Text(
                 title,
@@ -481,9 +490,7 @@ fun IosCircleButton(icon: ImageVector, description: String, onClick: () -> Unit,
         Modifier
             .size(40.dp)
             .iosPress(scaleTo = 0.88f, onClick = onClick)
-            .clip(CircleShape)
-            .background(c.bar)
-            .border(BorderStroke(0.75.dp, glassEdge(c.dark)), CircleShape),
+            .liquidGlass(null, CircleShape, GlassStyles.Control, fallback = glassControlFill(c.dark)),
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon, contentDescription = description, tint = tint, modifier = Modifier.size(21.dp))
@@ -491,11 +498,6 @@ fun IosCircleButton(icon: ImageVector, description: String, onClick: () -> Unit,
 }
 
 val SectionCorner = 20.dp
-
-fun glassEdge(dark: Boolean): Brush = Brush.verticalGradient(
-    if (dark) listOf(Color.White.copy(alpha = 0.32f), Color.White.copy(alpha = 0.06f))
-    else listOf(Color.White.copy(alpha = 0.95f), Color.Black.copy(alpha = 0.06f)),
-)
 
 @Composable
 fun IosPushedPage(
@@ -653,14 +655,11 @@ private fun AlertButton(action: AlertAction, modifier: Modifier) {
 }
 
 @Composable
-fun IosGlass(modifier: Modifier = Modifier, shape: androidx.compose.ui.graphics.Shape = CircleShape, content: @Composable () -> Unit) {
-    val c = Ios.colors
-    Surface(
-        modifier = modifier,
-        shape = shape,
-        color = c.bar,
-        border = BorderStroke(0.75.dp, glassEdge(c.dark)),
-        shadowElevation = 16.dp,
-        content = content,
-    )
+fun IosGlass(
+    modifier: Modifier = Modifier,
+    shape: androidx.compose.ui.graphics.Shape = CircleShape,
+    backdrop: GlassBackdrop? = null,
+    content: @Composable () -> Unit,
+) {
+    Box(modifier.liquidGlass(backdrop, shape, GlassStyles.Toast)) { content() }
 }
