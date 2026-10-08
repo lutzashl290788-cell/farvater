@@ -22,6 +22,12 @@ Farvater connects your phone to your own server or to one from a subscription an
 <li>IPv6 is blocked, DNS goes over DoH inside the tunnel by default.</li>
 </ul>
 
+<b>Appearance</b>
+<ul>
+<li>Two styles to choose from: iOS 26 with Liquid Glass or Material You with wallpaper colors.</li>
+<li>Light, dark or system theme.</li>
+</ul>
+
 <b>Security</b>
 <ul>
 <li>The local proxy listens on 127.0.0.1 only and requires a random password.</li>
