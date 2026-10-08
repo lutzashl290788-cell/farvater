@@ -40,7 +40,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountBalance
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.BatteryChargingFull
-import androidx.compose.material.icons.rounded.Autorenew
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Dns
@@ -417,14 +416,6 @@ private fun ConnectionPage(settings: AppSettings, onChange: ((AppSettings) -> Ap
             value = if (bypassCount == 0) "нет" else bypassCount.toString(),
             chevron = true,
             onClick = onApps,
-        )
-    }
-    IosSection(footer = "Если узел трижды подряд не ответил, Фарватер сам перейдёт на другой рабочий.") {
-        IosRow(
-            title = "Переключаться при сбое",
-            icon = Icons.Rounded.Autorenew,
-            iconTint = c.tint,
-            trailing = { IosSwitch(settings.autoSwitch, { v -> onChange { it.copy(autoSwitch = v) } }) },
         )
     }
 }

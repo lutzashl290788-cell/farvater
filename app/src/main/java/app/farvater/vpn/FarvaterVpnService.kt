@@ -43,15 +43,18 @@ class FarvaterVpnService : VpnService() {
     companion object {
         const val ACTION_START = "app.farvater.action.START"
         const val ACTION_STOP = "app.farvater.action.STOP"
+        const val EXTRA_RESTART = "app.farvater.extra.RESTART"
         const val CHANNEL = "vpn"
         private const val NOTIFICATION_ID = 7
         private const val MTU = 8500
         private const val PROBE_EVERY = 60
         private const val UPDATE_GAP_MS = 60 * 1000L
 
-        fun start(context: Context, node: ProxyNode) {
-            App.prefs.lastNode = node
-            context.startForegroundService(Intent(context, FarvaterVpnService::class.java).setAction(ACTION_START))
+        fun start(context: Context, node: ProxyNode, restart: Boolean = false) {
+            App.prefs.selectNode(node)
+            context.startForegroundService(
+                Intent(context, FarvaterVpnService::class.java).setAction(ACTION_START).putExtra(EXTRA_RESTART, restart),
+            )
         }
 
         fun stop(context: Context) {
@@ -100,12 +103,20 @@ class FarvaterVpnService : VpnService() {
             fail("Сначала выберите сервер в приложении", null)
             return START_NOT_STICKY
         }
-        scope.launch { startVpn(node) }
+        val restart = intent?.getBooleanExtra(EXTRA_RESTART, false) ?: false
+        scope.launch { startVpn(node, restart) }
         return START_STICKY
     }
 
-    private fun startVpn(node: ProxyNode) {
-        synchronized(this) { connectLocked(node) }
+    private fun startVpn(node: ProxyNode, restart: Boolean) {
+        synchronized(this) {
+            val current = VpnBus.state.value
+            if (!restart && tun != null && current is VpnState.Connected && current.node == node) {
+                updateNotification(node.name, "Подключено")
+                return
+            }
+            connectLocked(node)
+        }
     }
 
     private fun connectLocked(node: ProxyNode) {
@@ -175,7 +186,8 @@ class FarvaterVpnService : VpnService() {
             }
             if (tick % 5 == 0) {
                 val t = VpnBus.traffic.value
-                updateNotification(node.name, "↓ ${formatSpeed(t.downBps)}   ↑ ${formatSpeed(t.upBps)}")
+                val text = if (failures >= VpnBus.STALL_CHECKS) "Узел не отвечает" else "↓ ${formatSpeed(t.downBps)}   ↑ ${formatSpeed(t.upBps)}"
+                updateNotification(node.name, text)
             }
             if (tick % PROBE_EVERY == 0) {
                 failures = if (probe()) 0 else failures + 1

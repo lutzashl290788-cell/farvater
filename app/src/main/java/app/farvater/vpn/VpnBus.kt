@@ -18,6 +18,7 @@ data class Traffic(
 )
 
 object VpnBus {
+    const val STALL_CHECKS = 3
     val state = MutableStateFlow<VpnState>(VpnState.Idle)
     val traffic = MutableStateFlow(Traffic())
     val speedHistory = MutableStateFlow<List<Long>>(emptyList())

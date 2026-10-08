@@ -30,6 +30,7 @@ import app.farvater.ui.screens.SettingsScreen
 import app.farvater.ui.screens.SourcesScreen
 import app.farvater.ui.screens.UpdateSheet
 import app.farvater.ui.theme.EaseOutQuint
+import app.farvater.vpn.VpnBus
 
 @Composable
 fun FarvaterRoot(vm: MainViewModel) {
@@ -37,6 +38,7 @@ fun FarvaterRoot(vm: MainViewModel) {
     val vpn by vm.vpnState.collectAsStateWithLifecycle()
     val traffic by vm.traffic.collectAsStateWithLifecycle()
     val history by vm.speedHistory.collectAsStateWithLifecycle()
+    val failed by vm.failedChecks.collectAsStateWithLifecycle()
 
     var tab by rememberSaveable { mutableStateOf(Tab.Home) }
     var reopenOnboarding by remember { mutableStateOf(false) }
@@ -67,6 +69,7 @@ fun FarvaterRoot(vm: MainViewModel) {
                     onCancelTest = vm::cancelTest,
                     onOpenServers = { tab = Tab.Servers },
                     onOpenUpdate = vm::openUpdate,
+                    stalled = failed >= VpnBus.STALL_CHECKS,
                 )
                 Tab.Servers -> ServersScreen(
                     state = state,

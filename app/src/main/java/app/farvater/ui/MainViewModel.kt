@@ -85,8 +85,10 @@ data class UiState(
     val netMode: NetMode? = null,
     val detectedMode: NetMode? = null,
     val detecting: Boolean = false,
+    val savedNode: ProxyNode? = null,
 ) {
-    val selectedNode: ProxyNode? get() = nodes.firstOrNull { it.id == selectedId }
+    val selectedNode: ProxyNode?
+        get() = nodes.firstOrNull { it.id == selectedId } ?: savedNode?.takeIf { it.id == selectedId }
     fun sourceTitle(id: String): String =
         if (id == ProxyNode.MANUAL_SOURCE) "вручную" else sources.firstOrNull { it.id == id }?.title ?: id
 }
@@ -116,19 +118,21 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         cachedState?.copy(
             settings = prefs.settings,
             selectedId = prefs.selectedNodeId,
+            savedNode = savedSelection(),
             progress = null,
             refreshing = false,
             message = null,
             pendingImport = null,
             updateStage = UpdateStage.Idle,
             showUpdate = false,
-        ) ?: UiState(settings = prefs.settings, selectedId = prefs.selectedNodeId),
+        ) ?: UiState(settings = prefs.settings, selectedId = prefs.selectedNodeId, savedNode = savedSelection()),
     )
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     val vpnState = VpnBus.state.asStateFlow()
     val traffic = VpnBus.traffic.asStateFlow()
     val speedHistory = VpnBus.speedHistory.asStateFlow()
+    val failedChecks = VpnBus.failedChecks.asStateFlow()
 
     private val _events = MutableSharedFlow<UiEvent>(extraBufferCapacity = 4)
     val events = _events.asSharedFlow()
@@ -168,7 +172,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         detectNetMode()
         viewModelScope.launch {
             VpnBus.failedChecks.collect { failures ->
-                if (failures >= 3 && prefs.settings.autoSwitch) switchAwayFromDeadNode()
+                if (failures == VpnBus.STALL_CHECKS) reportDeadNode()
             }
         }
         viewModelScope.launch {
@@ -382,6 +386,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         prefs.userSources = prefs.userSources.filterNot { it.id == id }
         repo.deleteCache(id)
         snapshots.update { it - id }
+        dropSelectionIf { it.sourceId == id }
         rebuild()
     }
 
@@ -425,6 +430,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (node.sourceId != ProxyNode.MANUAL_SOURCE) return
         repo.removeManual(node.id)
         snapshots.update { it + (ProxyNode.MANUAL_SOURCE to repo.loadManual()) }
+        dropSelectionIf { it.id == node.id }
         rebuild()
     }
 
@@ -491,53 +497,75 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             if (best == null) {
                 toast("Рабочих узлов не нашлось. Обновите источники через Wi-Fi или добавьте свою подписку.")
             } else {
-                setSelected(best.id)
+                setSelected(best)
                 connect(best)
             }
         }
     }
 
-    private fun bestNode(exclude: String? = null): ProxyNode? =
-        _state.value.nodes.firstOrNull { it.id != exclude && results.value[it.id]?.alive == true }
+    private fun bestNode(): ProxyNode? =
+        _state.value.nodes.firstOrNull { results.value[it.id]?.alive == true }
 
-    private suspend fun switchAwayFromDeadNode() {
+    private fun reportDeadNode() {
         val current = (VpnBus.state.value as? VpnState.Connected)?.node ?: return
-        results.update { it + (current.id to TestResult(current.id, -1, TestMethod.REAL)) }
-        rebuildNow()
-        val next = bestNode(exclude = current.id) ?: return toast("Узел не отвечает, а запасных живых нет. Запустите поиск.")
-        toast("Узел перестал отвечать — переключаюсь на «${next.name}»")
-        setSelected(next.id)
-        connect(next)
+        toast("Узел «${current.name}» не отвечает. Проверьте интернет или выберите другой узел.")
     }
 
     fun toggleConnection() {
         when (VpnBus.state.value) {
             is VpnState.Connected, is VpnState.Connecting -> FarvaterVpnService.stop(getApplication())
             else -> {
-                val node = _state.value.selectedNode ?: bestNode() ?: _state.value.nodes.firstOrNull()
+                val node = _state.value.selectedNode
+                    ?: (bestNode() ?: _state.value.nodes.firstOrNull())?.also(::setSelected)
                 if (node == null) toast("Нет узлов. Включите источники или добавьте подписку.") else connect(node)
             }
         }
     }
 
     fun select(node: ProxyNode) {
-        setSelected(node.id)
+        setSelected(node)
         val vpn = VpnBus.state.value
         if (vpn is VpnState.Connected && vpn.node.id != node.id) connect(node)
     }
 
-    private fun setSelected(id: String) {
-        prefs.selectedNodeId = id
-        _state.update { it.copy(selectedId = id) }
+    @Synchronized
+    private fun setSelected(node: ProxyNode) {
+        prefs.selectNode(node)
+        _state.update { it.copy(selectedId = node.id, savedNode = node) }
     }
 
-    private fun connect(node: ProxyNode) {
+    @Synchronized
+    private fun dropSelectionIf(predicate: (ProxyNode) -> Boolean) {
+        val current = _state.value.selectedNode ?: return
+        if (!predicate(current)) return
+        prefs.clearSelection()
+        _state.update { it.copy(selectedId = null, savedNode = null) }
+    }
+
+    private fun savedSelection(): ProxyNode? = prefs.lastNode?.takeIf { it.id == prefs.selectedNodeId }
+
+    private fun reconcileSelection(nodes: List<ProxyNode>): ProxyNode? {
+        val id = prefs.selectedNodeId
+        nodes.firstOrNull { it.id == id }?.let { listed ->
+            prefs.selectNode(listed)
+            return listed
+        }
+        val saved = prefs.lastNode ?: return null
+        val chosen = nodes.firstOrNull {
+            it.sourceId == saved.sourceId && it.protocol == saved.protocol &&
+                it.address == saved.address && it.port == saved.port && it.name == saved.name
+        } ?: saved
+        prefs.selectNode(chosen)
+        return chosen
+    }
+
+    private fun connect(node: ProxyNode, restart: Boolean = false) {
         val permission = VpnService.prepare(getApplication())
         if (permission != null) {
             pendingNode = node
             _events.tryEmit(UiEvent.RequestVpnPermission(permission))
         } else {
-            FarvaterVpnService.start(getApplication(), node)
+            FarvaterVpnService.start(getApplication(), node, restart)
         }
     }
 
@@ -557,15 +585,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val tunnelChanged = old.bypassApps != new.bypassApps ||
             old.directRuServices != new.directRuServices ||
             old.encryptedDns != new.encryptedDns
-        if (tunnelChanged && vpn is VpnState.Connected) reconnectSoon(vpn.node)
+        if (tunnelChanged && vpn is VpnState.Connected) reconnectSoon()
     }
 
     private var reconnectJob: Job? = null
-    private fun reconnectSoon(node: ProxyNode) {
+    private fun reconnectSoon() {
         reconnectJob?.cancel()
         reconnectJob = viewModelScope.launch {
             delay(RECONNECT_DELAY_MS)
-            if (VpnBus.state.value is VpnState.Connected) connect(node)
+            val vpn = VpnBus.state.value
+            if (vpn is VpnState.Connected) connect(_state.value.selectedNode ?: vpn.node, restart = true)
         }
     }
 
@@ -649,6 +678,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val activeSnaps = snaps.filterKeys { it in active }.values
         val supported = activeSnaps.flatMap { it.nodes }.filter(XrayConfigBuilder::isSupported).distinctBy { it.id }
         val nodes = supported.filterNot(::hideInsecure)
+        val selected = reconcileSelection(nodes)
         val res = results.value
         val titles = sources.associate { it.id to it.title }
         val announcements = activeSnaps.mapNotNull { snap ->
@@ -667,6 +697,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 announcements = announcements,
                 netMode = mode,
                 detectedMode = detected,
+                selectedId = selected?.id,
+                savedNode = selected,
             )
         }
     }

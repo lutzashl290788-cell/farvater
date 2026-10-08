@@ -20,7 +20,6 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK }
 @Serializable
 data class AppSettings(
     val directRuServices: Boolean = true,
-    val autoSwitch: Boolean = true,
     val hideDead: Boolean = false,
     val testUrl: String = "https://www.gstatic.com/generate_204",
     val concurrency: Int = 16,
@@ -112,9 +111,25 @@ class Prefs(context: Context) {
         get() = sp.getString("selected_node", null)
         set(value) = sp.edit().putString("selected_node", value).apply()
 
+    @Volatile private var cachedLastNode: ProxyNode? = null
+
     var lastNode: ProxyNode?
-        get() = read<ProxyNode>("last_node")
-        set(value) = write("last_node", value)
+        get() = cachedLastNode ?: read<ProxyNode>("last_node")?.also { cachedLastNode = it }
+        set(value) {
+            if (value != null && value == cachedLastNode) return
+            cachedLastNode = value
+            write("last_node", value)
+        }
+
+    fun selectNode(node: ProxyNode) {
+        if (selectedNodeId != node.id) selectedNodeId = node.id
+        lastNode = node
+    }
+
+    fun clearSelection() {
+        selectedNodeId = null
+        lastNode = null
+    }
 
     private companion object {
         val OLD_CATALOG = setOf(

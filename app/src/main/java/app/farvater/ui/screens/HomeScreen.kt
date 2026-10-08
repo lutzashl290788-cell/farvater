@@ -96,6 +96,7 @@ fun HomeScreen(
     onCancelTest: () -> Unit,
     onOpenServers: () -> Unit,
     onOpenUpdate: () -> Unit = {},
+    stalled: Boolean = false,
 ) {
     val c = Ios.colors
     val mode = when {
@@ -170,7 +171,7 @@ fun HomeScreen(
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        supporting(m, vpn, state),
+                        if (m == ConnectMode.Connected && stalled) "Узел не отвечает. Проверьте интернет или выберите другой узел" else supporting(m, vpn, state),
                         style = IosType.subheadline,
                         color = c.secondaryLabel,
                         textAlign = TextAlign.Center,
@@ -222,9 +223,10 @@ fun HomeScreen(
                 val node = state.selectedNode
                 if (node != null) {
                     val (flag, title) = remember(node.name) { splitFlag(node.name) }
+                    val listed = remember(node.id, state.nodes) { state.nodes.any { it.id == node.id } }
                     IosRow(
                         title = title,
-                        subtitle = nodeSummary(node),
+                        subtitle = if (listed) nodeSummary(node) else "Сейчас его нет в списке источников, но он остаётся выбранным",
                         leading = { NodeAvatar(flag, node, size = 40.dp) },
                         chevron = true,
                         onClick = onOpenServers,
