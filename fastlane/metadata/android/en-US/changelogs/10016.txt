@@ -1,0 +1,3 @@
+- Faster startup and node checks
+- The iOS 26 glass turns off in battery saver mode
+- Updates are checked every 15 minutes
