@@ -3,6 +3,8 @@ package app.farvater.engine
 import android.content.Context
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
+import java.util.concurrent.CountDownLatch
+import kotlin.concurrent.thread
 
 object XrayEngine {
     private const val LIB = "libv2ray.Libv2ray"
@@ -24,11 +26,16 @@ object XrayEngine {
     private fun libMethod(name: String): Method? =
         runCatching { Class.forName(LIB).methods.firstOrNull { it.name == name } }.getOrNull()
 
+    private val ready = CountDownLatch(1)
+
     fun init(context: Context) {
-        if (!isAvailable) return
-        runCatching {
-            val m = libMethod("initCoreEnv") ?: libMethod("initV2Env")
-            if (m != null && m.parameterCount == 2) m.invoke(null, context.filesDir.absolutePath, "")
+        val dir = context.filesDir.absolutePath
+        thread(name = "xray-init") {
+            if (isAvailable) runCatching {
+                val m = libMethod("initCoreEnv") ?: libMethod("initV2Env")
+                if (m != null && m.parameterCount == 2) m.invoke(null, dir, "")
+            }
+            ready.countDown()
         }
     }
 
@@ -36,6 +43,7 @@ object XrayEngine {
 
     @Synchronized
     fun start(config: String): Result<Unit> = runCatching {
+        ready.await()
         check(isAvailable) { "ядро Xray не встроено — добавьте libv2ray.aar в app/libs" }
         stop()
         val handlerClass = Class.forName(CALLBACK)
@@ -73,6 +81,9 @@ object XrayEngine {
 
     fun measureDelay(config: String, url: String): Long {
         val m = measureMethod ?: return -1
-        return runCatching { (m.invoke(null, config, url) as Number).toLong() }.getOrDefault(-1L)
+        return runCatching {
+            ready.await()
+            (m.invoke(null, config, url) as Number).toLong()
+        }.getOrDefault(-1L)
     }
 }

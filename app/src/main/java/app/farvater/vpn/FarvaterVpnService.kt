@@ -52,7 +52,7 @@ class FarvaterVpnService : VpnService() {
         private const val NOTIFICATION_ID = 7
         private const val MTU = 8500
         private const val PROBE_EVERY = 60
-        private const val UPDATE_GAP_MS = 60 * 1000L
+        private const val UPDATE_GAP_MS = 15 * 60 * 1000L
 
         fun start(context: Context, node: ProxyNode, restart: Boolean = false) {
             App.prefs.selectNode(node)

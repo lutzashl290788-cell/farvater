@@ -157,7 +157,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { _state.collect { cachedState = it } }
         viewModelScope.launch(Dispatchers.IO) {
             if (snapshots.value.isEmpty()) {
-                val ids = fetchTargets(includeDisabled = true).map { it.first } + ProxyNode.MANUAL_SOURCE
+                val ids = fetchTargets().map { it.first } + ProxyNode.MANUAL_SOURCE
                 snapshots.value = ids.mapNotNull { id -> repo.loadCached(id)?.let { id to it } }.toMap()
             }
             rebuild()
@@ -357,7 +357,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         rebuild()
         if (enabled && snapshots.value[id] == null) {
             BuiltInCatalog.byId(id)?.let { src ->
-                viewModelScope.launch { refreshOne(id, src.mirrors, VpnBus.state.value is VpnState.Connected) }
+                viewModelScope.launch(Dispatchers.IO) {
+                    val cached = repo.loadCached(id)
+                    if (cached == null) {
+                        refreshOne(id, src.mirrors, VpnBus.state.value is VpnState.Connected)
+                    } else {
+                        snapshots.update { it + (id to cached) }
+                        rebuild()
+                        refreshDue()
+                    }
+                }
             }
         }
     }
@@ -454,8 +463,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     pending.clear()
                     results.update { it + batch }
                 }
-                _state.update { it.copy(progress = TestProgress(done, nodes.size, alive)) }
-                rebuild()
+                _state.update { it.copy(results = results.value, progress = TestProgress(done, nodes.size, alive)) }
             }
             _state.update { it.copy(progress = TestProgress(0, nodes.size, 0)) }
             try {
@@ -613,11 +621,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun toast(text: String) = _state.update { it.copy(message = text) }
 
-    private fun fetchTargets(includeDisabled: Boolean = false): List<Pair<String, List<String>>> = buildList {
+    private fun fetchTargets(): List<Pair<String, List<String>>> = buildList {
         val settings = prefs.settings
         val enabled = prefs.enabledSources
         BuiltInCatalog.sources
-            .filter { includeDisabled || (settings.communityEnabled && it.id in enabled) }
+            .filter { settings.communityEnabled && it.id in enabled }
             .forEach { add(it.id to it.mirrors) }
         prefs.userSources.forEach { add(it.id to listOf(it.url)) }
     }
@@ -739,7 +747,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         private const val MAX_IMPORT = 2 * 1024 * 1024
         private const val DETECT_GAP_MS = 60 * 1000L
         @Volatile private var lastDetect = 0L
-        private const val UPDATE_CHECK_GAP_MS = 60 * 1000L
+        private const val UPDATE_CHECK_GAP_MS = 15 * 60 * 1000L
         private const val REBUILD_GAP_MS = 150L
         private const val FLUSH_MS = 300L
         private const val RECONNECT_DELAY_MS = 1200L

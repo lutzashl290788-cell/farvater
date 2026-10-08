@@ -3,12 +3,19 @@ package app.farvater
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.PowerManager
+import androidx.core.content.ContextCompat
 import app.farvater.core.xray.LocalProxyAuth
 import app.farvater.data.Prefs
 import app.farvater.data.SubscriptionRepository
 import app.farvater.data.UpdateRepository
 import app.farvater.data.UpdateWorker
 import app.farvater.engine.XrayEngine
+import app.farvater.ui.ios.powerSave
 import app.farvater.vpn.FarvaterVpnService
 import java.net.Authenticator
 import java.net.PasswordAuthentication
@@ -37,6 +44,18 @@ class App : Application() {
             deleteNotificationChannel("updates")
         }
         UpdateWorker.schedule(this)
+        val power = getSystemService(PowerManager::class.java)
+        powerSave = power.isPowerSaveMode
+        ContextCompat.registerReceiver(
+            this,
+            object : BroadcastReceiver() {
+                override fun onReceive(context: Context, intent: Intent) {
+                    powerSave = power.isPowerSaveMode
+                }
+            },
+            IntentFilter(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED),
+            ContextCompat.RECEIVER_EXPORTED,
+        )
     }
 
     companion object {

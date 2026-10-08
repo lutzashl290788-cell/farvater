@@ -57,7 +57,9 @@ class GlassBackdrop internal constructor() {
 @Composable
 fun rememberGlassBackdrop(): GlassBackdrop = remember { GlassBackdrop() }
 
-val glassSupported: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+var powerSave by mutableStateOf(false)
+
+val glassSupported: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !powerSave
 
 fun Modifier.glassSource(backdrop: GlassBackdrop): Modifier = composed {
     val layer = rememberGraphicsLayer()

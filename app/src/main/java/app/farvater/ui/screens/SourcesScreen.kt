@@ -267,6 +267,7 @@ private fun modeFooter(choice: NetModeChoice, detected: NetMode?, detecting: Boo
 
 private fun statusText(source: SourceUi): String = "${modeShort(source.mode)} · обновление ${intervalLabel(source)}\n" + when {
     source.loading -> "Обновляю…"
+    !source.enabled -> "Выключена"
     source.error != null && source.nodeCount > 0 -> "Из кэша: ${source.nodeCount} узлов, ${source.error}"
     source.error != null -> source.error.replaceFirstChar { it.uppercase() }
     source.updatedAt > 0 -> "${source.nodeCount} узлов, ${formatAgo(source.updatedAt).removePrefix("обновлён ")}"
