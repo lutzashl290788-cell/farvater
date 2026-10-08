@@ -42,7 +42,10 @@ import app.farvater.data.UpdateInfo
 import app.farvater.ui.UpdateStage
 import app.farvater.ui.ios.IosButton
 import app.farvater.ui.ios.IosButtonStyle
+import app.farvater.ui.ios.IosGrabber
 import app.farvater.ui.ios.IosProgressBar
+import app.farvater.ui.ios.SectionCorner
+import app.farvater.ui.ios.SheetCorner
 import app.farvater.ui.theme.Ios
 import app.farvater.ui.theme.IosType
 import kotlinx.coroutines.launch
@@ -50,6 +53,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun UpdateSheet(info: UpdateInfo, stage: UpdateStage, onUpdate: () -> Unit, onLater: () -> Unit) {
     val c = Ios.colors
+    val corner = SheetCorner
     val scope = rememberCoroutineScope()
     val slide = remember { Animatable(1f) }
     LaunchedEffect(Unit) { slide.animateTo(0f, spring(dampingRatio = 0.88f, stiffness = 300f)) }
@@ -67,14 +71,14 @@ fun UpdateSheet(info: UpdateInfo, stage: UpdateStage, onUpdate: () -> Unit, onLa
                     .fillMaxWidth()
                     .heightIn(max = 640.dp)
                     .graphicsLayer { translationY = size.height * slide.value }
-                    .clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
+                    .clip(RoundedCornerShape(topStart = corner, topEnd = corner))
                     .background(c.background)
                     .windowInsetsPadding(WindowInsets.navigationBars)
                     .padding(horizontal = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Spacer(Modifier.height(8.dp))
-                Box(Modifier.size(36.dp, 5.dp).clip(CircleShape).background(c.tertiaryLabel))
+                IosGrabber()
                 Spacer(Modifier.height(24.dp))
                 AppLogo(64.dp)
                 Spacer(Modifier.height(14.dp))
@@ -94,7 +98,7 @@ fun UpdateSheet(info: UpdateInfo, stage: UpdateStage, onUpdate: () -> Unit, onLa
                     Modifier
                         .weight(1f, fill = false)
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(SectionCorner))
                         .background(c.cell)
                         .verticalScroll(rememberScrollState())
                         .padding(16.dp),

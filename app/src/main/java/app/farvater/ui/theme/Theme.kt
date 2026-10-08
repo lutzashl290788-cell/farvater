@@ -1,23 +1,31 @@
 package app.farvater.ui.theme
 
+import android.os.Build
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.farvater.data.UiStyle
 
 @Immutable
 data class IosColors(
@@ -100,6 +108,8 @@ val IosLight = IosColors(
 
 val LocalIos = staticCompositionLocalOf { IosDark }
 
+val LocalUiStyle = staticCompositionLocalOf { UiStyle.IOS }
+
 object IosType {
     val largeTitle = TextStyle(fontSize = 34.sp, lineHeight = 41.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.2.sp)
     val title1 = TextStyle(fontSize = 28.sp, lineHeight = 34.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.2.sp)
@@ -117,6 +127,80 @@ object IosType {
 object Ios {
     val colors: IosColors
         @Composable @ReadOnlyComposable get() = LocalIos.current
+
+    val material: Boolean
+        @Composable @ReadOnlyComposable get() = LocalUiStyle.current == UiStyle.MATERIAL
+}
+
+private val OrangeLight = lightColorScheme(
+    primary = Color(0xFF855400), onPrimary = Color.White,
+    primaryContainer = Color(0xFFFFDDB8), onPrimaryContainer = Color(0xFF2A1700),
+    secondary = Color(0xFF715A41), onSecondary = Color.White,
+    secondaryContainer = Color(0xFFFCDDBD), onSecondaryContainer = Color(0xFF281805),
+    tertiary = Color(0xFF53643E), onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFD6E9B9), onTertiaryContainer = Color(0xFF121F03),
+    error = Color(0xFFBA1A1A), onError = Color.White,
+    errorContainer = Color(0xFFFFDAD6), onErrorContainer = Color(0xFF410002),
+    background = Color(0xFFFFF8F4), onBackground = Color(0xFF201B16),
+    surface = Color(0xFFFFF8F4), onSurface = Color(0xFF201B16),
+    surfaceVariant = Color(0xFFF0E0D0), onSurfaceVariant = Color(0xFF50453A),
+    outline = Color(0xFF827568), outlineVariant = Color(0xFFD4C4B5),
+    inverseSurface = Color(0xFF362F2A), inverseOnSurface = Color(0xFFFBEEE5), inversePrimary = Color(0xFFFFB95F),
+    surfaceTint = Color(0xFF855400), scrim = Color.Black,
+    surfaceDim = Color(0xFFE4D8CF), surfaceBright = Color(0xFFFFF8F4),
+    surfaceContainerLowest = Color.White, surfaceContainerLow = Color(0xFFFEF1E8),
+    surfaceContainer = Color(0xFFF8EBE2), surfaceContainerHigh = Color(0xFFF3E6DC),
+    surfaceContainerHighest = Color(0xFFEDE0D7),
+)
+
+private val OrangeDark = darkColorScheme(
+    primary = Color(0xFFFFB95F), onPrimary = Color(0xFF462A00),
+    primaryContainer = Color(0xFF653E00), onPrimaryContainer = Color(0xFFFFDDB8),
+    secondary = Color(0xFFDFC2A2), onSecondary = Color(0xFF3F2D17),
+    secondaryContainer = Color(0xFF58432B), onSecondaryContainer = Color(0xFFFCDDBD),
+    tertiary = Color(0xFFBACD9F), onTertiary = Color(0xFF263514),
+    tertiaryContainer = Color(0xFF3C4C28), onTertiaryContainer = Color(0xFFD6E9B9),
+    error = Color(0xFFFFB4AB), onError = Color(0xFF690005),
+    errorContainer = Color(0xFF93000A), onErrorContainer = Color(0xFFFFDAD6),
+    background = Color(0xFF18120C), onBackground = Color(0xFFEDE0D7),
+    surface = Color(0xFF18120C), onSurface = Color(0xFFEDE0D7),
+    surfaceVariant = Color(0xFF50453A), onSurfaceVariant = Color(0xFFD4C4B5),
+    outline = Color(0xFF9C8E80), outlineVariant = Color(0xFF50453A),
+    inverseSurface = Color(0xFFEDE0D7), inverseOnSurface = Color(0xFF362F2A), inversePrimary = Color(0xFF855400),
+    surfaceTint = Color(0xFFFFB95F), scrim = Color.Black,
+    surfaceDim = Color(0xFF18120C), surfaceBright = Color(0xFF3F3731),
+    surfaceContainerLowest = Color(0xFF120D08), surfaceContainerLow = Color(0xFF201B16),
+    surfaceContainer = Color(0xFF251F1A), surfaceContainerHigh = Color(0xFF302924),
+    surfaceContainerHighest = Color(0xFF3B342E),
+)
+
+private fun materialColors(s: ColorScheme, dark: Boolean): IosColors {
+    val cell = if (dark) s.surfaceContainerHigh else s.surfaceContainerLowest
+    return IosColors(
+        dark = dark,
+        background = if (dark) s.surface else s.surfaceContainer,
+        cell = cell,
+        cellRaised = s.surfaceContainerHighest,
+        fill = s.surfaceContainerHighest,
+        highlight = s.onSurface.copy(alpha = 0.1f).compositeOver(cell),
+        segmentThumb = s.secondaryContainer,
+        bar = s.surfaceContainer,
+        barBorder = s.outlineVariant,
+        label = s.onSurface,
+        secondaryLabel = s.onSurfaceVariant,
+        tertiaryLabel = s.outline,
+        separator = s.outlineVariant,
+        tint = s.primary,
+        green = if (dark) Color(0xFF6DD58C) else Color(0xFF146C2E),
+        red = s.error,
+        blue = if (dark) Color(0xFFA8C7FA) else Color(0xFF0B57D0),
+        teal = if (dark) Color(0xFF4FD8EB) else Color(0xFF006A6A),
+        indigo = if (dark) Color(0xFFBAC3FF) else Color(0xFF4355B9),
+        purple = if (dark) Color(0xFFD0BCFF) else Color(0xFF6750A4),
+        gray = s.outline,
+        yellow = if (dark) Color(0xFFFDD663) else Color(0xFF7C5800),
+        pink = if (dark) Color(0xFFFFB0CD) else Color(0xFFA0306A),
+    )
 }
 
 private fun scheme(c: IosColors) = if (c.dark) {
@@ -177,6 +261,8 @@ private val Type = Typography(
     labelSmall = IosType.caption2.copy(fontWeight = FontWeight.Medium),
 )
 
+private val MaterialType = Typography()
+
 object IosMotion {
     const val SoftDamping = 0.86f
     const val SoftStiffness = 300f
@@ -190,19 +276,53 @@ val EaseInOut = CubicBezierEasing(0.42f, 0f, 0.58f, 1f)
 val Numeric = TextStyle(fontFeatureSettings = "tnum")
 
 @Composable
-fun FarvaterTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
-    val ios = if (darkTheme) IosDark else IosLight
-    CompositionLocalProvider(LocalIos provides ios) {
+fun FarvaterTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    style: UiStyle = UiStyle.IOS,
+    dynamicColor: Boolean = true,
+    content: @Composable () -> Unit,
+) {
+    val context = LocalContext.current
+    val material = style == UiStyle.MATERIAL
+    val colorScheme = remember(darkTheme, material, dynamicColor) {
+        if (!material) {
+            scheme(if (darkTheme) IosDark else IosLight)
+        } else if (dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        } else if (darkTheme) {
+            OrangeDark
+        } else {
+            OrangeLight
+        }
+    }
+    val ios = remember(colorScheme, darkTheme, material) {
+        when {
+            material -> materialColors(colorScheme, darkTheme)
+            darkTheme -> IosDark
+            else -> IosLight
+        }
+    }
+    CompositionLocalProvider(LocalIos provides ios, LocalUiStyle provides style) {
         MaterialTheme(
-            colorScheme = scheme(ios),
-            typography = Type,
-            shapes = Shapes(
-                extraSmall = RoundedCornerShape(7.dp),
-                small = RoundedCornerShape(10.dp),
-                medium = RoundedCornerShape(12.dp),
-                large = RoundedCornerShape(14.dp),
-                extraLarge = RoundedCornerShape(20.dp),
-            ),
+            colorScheme = colorScheme,
+            typography = if (material) MaterialType else Type,
+            shapes = if (material) {
+                Shapes(
+                    extraSmall = RoundedCornerShape(8.dp),
+                    small = RoundedCornerShape(12.dp),
+                    medium = RoundedCornerShape(16.dp),
+                    large = RoundedCornerShape(20.dp),
+                    extraLarge = RoundedCornerShape(28.dp),
+                )
+            } else {
+                Shapes(
+                    extraSmall = RoundedCornerShape(7.dp),
+                    small = RoundedCornerShape(10.dp),
+                    medium = RoundedCornerShape(12.dp),
+                    large = RoundedCornerShape(14.dp),
+                    extraLarge = RoundedCornerShape(20.dp),
+                )
+            },
             content = content,
         )
     }

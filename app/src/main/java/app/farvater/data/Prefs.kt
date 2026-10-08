@@ -12,6 +12,12 @@ import kotlinx.serialization.serializer
 const val LEGAL_VERSION = 1
 
 @Serializable
+enum class UiStyle { IOS, MATERIAL }
+
+@Serializable
+enum class ThemeMode { SYSTEM, LIGHT, DARK }
+
+@Serializable
 data class AppSettings(
     val directRuServices: Boolean = true,
     val autoSwitch: Boolean = true,
@@ -27,6 +33,9 @@ data class AppSettings(
     val autoUpdates: Boolean = true,
     val bypassApps: Set<String> = emptySet(),
     val netMode: NetModeChoice = NetModeChoice.AUTO,
+    val uiStyle: UiStyle = UiStyle.IOS,
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val dynamicColor: Boolean = true,
 )
 
 @Serializable

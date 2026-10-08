@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.PowerManager
 import android.provider.Settings
+import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
@@ -52,6 +53,7 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.PhoneAndroid
@@ -92,12 +94,15 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import app.farvater.BuildConfig
 import app.farvater.data.AppSettings
+import app.farvater.data.ThemeMode
+import app.farvater.data.UiStyle
 import app.farvater.engine.TunBridge
 import app.farvater.engine.XrayEngine
 import app.farvater.ui.LocalBottomInset
 import app.farvater.ui.components.AppLogo
 import app.farvater.ui.ios.IosButton
 import app.farvater.ui.ios.IosButtonStyle
+import app.farvater.ui.ios.IosChoiceRow
 import app.farvater.ui.ios.IosCompactBar
 import app.farvater.ui.ios.glassSource
 import app.farvater.ui.ios.rememberGlassBackdrop
@@ -109,6 +114,7 @@ import app.farvater.ui.ios.IosSection
 import app.farvater.ui.ios.IosSegmented
 import app.farvater.ui.ios.IosSpinner
 import app.farvater.ui.ios.IosSwitch
+import app.farvater.ui.ios.SheetCorner
 import app.farvater.ui.theme.Ios
 import app.farvater.ui.theme.IosType
 import kotlinx.coroutines.launch
@@ -116,6 +122,7 @@ import kotlinx.coroutines.launch
 private val ConcurrencyOptions = listOf(8 to "Бережно", 16 to "Обычно", 32 to "Быстро")
 
 private enum class SettingsPage(val title: String) {
+    Appearance("Оформление"),
     Connection("Подключение"),
     Security("Безопасность"),
     Subscriptions("Подписки"),
@@ -166,6 +173,7 @@ fun SettingsScreen(
             )
             else -> IosPushedPage(title = current.title, backTitle = "Настройки", onBack = { page = null }) {
                 when (current) {
+                    SettingsPage.Appearance -> AppearancePage(settings, onChange)
                     SettingsPage.Connection -> ConnectionPage(settings, onChange) { showApps = true }
                     SettingsPage.Security -> SecurityPage(settings, onChange)
                     SettingsPage.Subscriptions -> SubscriptionsPage(settings, onChange, hwid, onCopied)
@@ -225,6 +233,17 @@ private fun SettingsRoot(
                     chevron = true,
                     onClick = { onOpen(SettingsPage.About) },
                     modifier = Modifier.padding(vertical = 6.dp),
+                )
+            }
+
+            IosSection {
+                IosRow(
+                    title = "Оформление",
+                    icon = Icons.Rounded.Palette,
+                    iconTint = c.pink,
+                    value = if (settings.uiStyle == UiStyle.MATERIAL) "Material You" else "iOS 26",
+                    chevron = true,
+                    onClick = { onOpen(SettingsPage.Appearance) },
                 )
             }
 
@@ -324,6 +343,58 @@ private fun SettingsRoot(
         IosCompactBar("Настройки", visible = collapsed, backdrop = backdrop)
     }
 }
+
+@Composable
+private fun AppearancePage(settings: AppSettings, onChange: ((AppSettings) -> AppSettings) -> Unit) {
+    IosSection(
+        header = "Стиль",
+        footer = "Меняет вид всего приложения: панели, кнопки, списки, переключатели и окна.",
+    ) {
+        IosChoiceRow(
+            title = "iOS 26",
+            subtitle = "Liquid Glass: стеклянные панели с размытием и преломлением",
+            selected = settings.uiStyle == UiStyle.IOS,
+            onClick = { onChange { it.copy(uiStyle = UiStyle.IOS) } },
+        )
+        IosDivider()
+        IosChoiceRow(
+            title = "Material You",
+            subtitle = "Стиль Android: Material 3 и цвета под обои телефона",
+            selected = settings.uiStyle == UiStyle.MATERIAL,
+            onClick = { onChange { it.copy(uiStyle = UiStyle.MATERIAL) } },
+        )
+    }
+
+    IosSection(header = "Тема") {
+        ThemeChoices.forEachIndexed { i, (mode, title) ->
+            if (i > 0) IosDivider()
+            IosChoiceRow(
+                title = title,
+                selected = settings.themeMode == mode,
+                onClick = { onChange { it.copy(themeMode = mode) } },
+            )
+        }
+    }
+
+    if (settings.uiStyle == UiStyle.MATERIAL && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        IosSection(
+            footer = "Цвета интерфейса подбираются под обои телефона. Если выключить, будет фирменный оранжевый.",
+        ) {
+            IosRow(
+                title = "Цвета обоев",
+                trailing = {
+                    IosSwitch(settings.dynamicColor, { v -> onChange { it.copy(dynamicColor = v) } })
+                },
+            )
+        }
+    }
+}
+
+private val ThemeChoices = listOf(
+    ThemeMode.SYSTEM to "Как в системе",
+    ThemeMode.LIGHT to "Светлая",
+    ThemeMode.DARK to "Тёмная",
+)
 
 @Composable
 private fun ConnectionPage(settings: AppSettings, onChange: ((AppSettings) -> AppSettings) -> Unit, onApps: () -> Unit) {
@@ -601,6 +672,7 @@ private fun AboutPage() {
 @Composable
 fun OnboardingDialog(onChoice: (enableCommunity: Boolean) -> Unit, onOpenDocument: (String) -> Unit) {
     val c = Ios.colors
+    val corner = SheetCorner
     val scope = rememberCoroutineScope()
     val slide = remember { Animatable(1f) }
     LaunchedEffect(Unit) { slide.animateTo(0f, spring(dampingRatio = 0.88f, stiffness = 280f)) }
@@ -622,7 +694,7 @@ fun OnboardingDialog(onChoice: (enableCommunity: Boolean) -> Unit, onOpenDocumen
                     .windowInsetsPadding(WindowInsets.statusBars)
                     .padding(top = 10.dp)
                     .graphicsLayer { translationY = size.height * slide.value }
-                    .clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
+                    .clip(RoundedCornerShape(topStart = corner, topEnd = corner))
                     .background(c.background)
                     .windowInsetsPadding(WindowInsets.navigationBars)
                     .verticalScroll(rememberScrollState())

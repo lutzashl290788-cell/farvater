@@ -2,52 +2,39 @@ package app.farvater.ui.screens
 
 import android.content.Intent
 import android.content.pm.PackageManager
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.core.graphics.drawable.toBitmap
 import app.farvater.ui.ios.IosDivider
 import app.farvater.ui.ios.IosRow
+import app.farvater.ui.ios.IosSheet
 import app.farvater.ui.ios.IosSearchField
 import app.farvater.ui.ios.IosSpinner
 import app.farvater.ui.ios.IosSwitch
@@ -55,7 +42,6 @@ import app.farvater.ui.ios.SectionCorner
 import app.farvater.ui.theme.Ios
 import app.farvater.ui.theme.IosType
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private data class InstalledApp(val pkg: String, val label: String)
@@ -65,7 +51,6 @@ fun BypassAppsSheet(selected: Set<String>, onChange: (Set<String>) -> Unit, onCl
     val c = Ios.colors
     val context = LocalContext.current
     val pm = context.packageManager
-    val scope = rememberCoroutineScope()
     var query by remember { mutableStateOf("") }
     val initial = remember { selected }
     val apps by produceState<List<InstalledApp>?>(null) {
@@ -73,86 +58,50 @@ fun BypassAppsSheet(selected: Set<String>, onChange: (Set<String>) -> Unit, onCl
     }
     val icons = remember { HashMap<String, ImageBitmap?>() }
 
-    val slide = remember { Animatable(1f) }
-    LaunchedEffect(Unit) { slide.animateTo(0f, spring(dampingRatio = 0.9f, stiffness = 300f)) }
-    val close: () -> Unit = {
-        scope.launch {
-            slide.animateTo(1f, spring(dampingRatio = 1f, stiffness = 520f))
-            onClose()
-        }
-    }
+    IosSheet(title = "Мимо VPN", onClose = onClose) {
+        IosSearchField(
+            value = query,
+            onValueChange = { query = it },
+            placeholder = "Поиск приложений",
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+        )
+        Text(
+            "Отмеченные приложения ходят в интернет напрямую. Пригодится для банков и сервисов, которые не работают через VPN. Изменения применяются сразу.",
+            style = IosType.footnote,
+            color = c.secondaryLabel,
+            modifier = Modifier.padding(horizontal = 32.dp).padding(bottom = 10.dp),
+        )
 
-    Dialog(onDismissRequest = close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f * (1f - slide.value)))) {
-            Column(
-                Modifier
-                    .fillMaxSize()
-                    .windowInsetsPadding(WindowInsets.statusBars)
-                    .padding(top = 10.dp)
-                    .graphicsLayer { translationY = size.height * slide.value }
-                    .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
-                    .background(c.background),
+        val list = apps
+        if (list == null) {
+            Box(Modifier.fillMaxWidth().padding(top = 40.dp), contentAlignment = Alignment.Center) { IosSpinner() }
+        } else {
+            val shown = remember(list, query) {
+                val q = query.trim()
+                if (q.isEmpty()) list else list.filter { it.label.contains(q, ignoreCase = true) || it.pkg.contains(q, ignoreCase = true) }
+            }
+            LazyColumn(
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 40.dp),
+                verticalArrangement = Arrangement.Top,
+                modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
             ) {
-                Box(Modifier.fillMaxWidth().height(52.dp)) {
-                    Text(
-                        "Мимо VPN",
-                        style = IosType.headline,
-                        color = c.label,
-                        modifier = Modifier.align(Alignment.Center),
-                    )
-                    Text(
-                        "Готово",
-                        style = IosType.body.copy(fontWeight = FontWeight.SemiBold),
-                        color = c.tint,
-                        modifier = Modifier.align(Alignment.CenterEnd).clickable(onClick = close).padding(horizontal = 16.dp, vertical = 12.dp),
-                    )
-                }
-                HorizontalDivider(thickness = 0.5.dp, color = c.separator)
-                IosSearchField(
-                    value = query,
-                    onValueChange = { query = it },
-                    placeholder = "Поиск приложений",
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                )
-                Text(
-                    "Отмеченные приложения ходят в интернет напрямую. Пригодится для банков и сервисов, которые не работают через VPN. Изменения применяются сразу.",
-                    style = IosType.footnote,
-                    color = c.secondaryLabel,
-                    modifier = Modifier.padding(horizontal = 32.dp).padding(bottom = 10.dp),
-                )
-
-                val list = apps
-                if (list == null) {
-                    Box(Modifier.fillMaxWidth().padding(top = 40.dp), contentAlignment = Alignment.Center) { IosSpinner() }
-                } else {
-                    val shown = remember(list, query) {
-                        val q = query.trim()
-                        if (q.isEmpty()) list else list.filter { it.label.contains(q, ignoreCase = true) || it.pkg.contains(q, ignoreCase = true) }
-                    }
-                    LazyColumn(
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 40.dp),
-                        verticalArrangement = Arrangement.Top,
-                        modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
+                itemsIndexed(shown, key = { _, app -> app.pkg }) { index, app ->
+                    val top = if (index == 0) SectionCorner else 0.dp
+                    val bottom = if (index == shown.lastIndex) SectionCorner else 0.dp
+                    Column(
+                        Modifier
+                            .clip(RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom))
+                            .background(c.cell),
                     ) {
-                        itemsIndexed(shown, key = { _, app -> app.pkg }) { index, app ->
-                            val top = if (index == 0) SectionCorner else 0.dp
-                            val bottom = if (index == shown.lastIndex) SectionCorner else 0.dp
-                            Column(
-                                Modifier
-                                    .clip(RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom))
-                                    .background(c.cell),
-                            ) {
-                                val checked = app.pkg in selected
-                                val toggle = { v: Boolean -> onChange(if (v) selected + app.pkg else selected - app.pkg) }
-                                IosRow(
-                                    title = app.label,
-                                    leading = { AppIcon(app.pkg, pm, icons) },
-                                    onClick = { toggle(!checked) },
-                                    trailing = { IosSwitch(checked, toggle) },
-                                )
-                                if (index != shown.lastIndex) IosDivider(start = 60.dp)
-                            }
-                        }
+                        val checked = app.pkg in selected
+                        val toggle = { v: Boolean -> onChange(if (v) selected + app.pkg else selected - app.pkg) }
+                        IosRow(
+                            title = app.label,
+                            leading = { AppIcon(app.pkg, pm, icons) },
+                            onClick = { toggle(!checked) },
+                            trailing = { IosSwitch(checked, toggle) },
+                        )
+                        if (index != shown.lastIndex) IosDivider(start = 60.dp)
                     }
                 }
             }

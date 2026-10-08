@@ -1,51 +1,39 @@
 package app.farvater.ui.screens
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import app.farvater.BuildConfig
+import app.farvater.ui.ios.IosSheet
 import app.farvater.ui.ios.IosSpinner
 import app.farvater.ui.ios.SectionCorner
 import app.farvater.ui.theme.Ios
 import app.farvater.ui.theme.IosType
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 data class ChangelogGroup(val title: String, val items: List<String>)
@@ -120,60 +108,27 @@ fun parseChangelog(text: String): List<ChangelogRelease> {
 fun ChangelogSheet(onClose: () -> Unit) {
     val c = Ios.colors
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val releases by produceState<List<ChangelogRelease>?>(null) {
         value = withContext(Dispatchers.IO) {
             runCatching { parseChangelog(context.assets.open("CHANGELOG.md").bufferedReader().use { it.readText() }) }
                 .getOrDefault(emptyList())
         }
     }
-    val slide = remember { Animatable(1f) }
-    LaunchedEffect(Unit) { slide.animateTo(0f, spring(dampingRatio = 0.9f, stiffness = 300f)) }
-    val close: () -> Unit = {
-        scope.launch {
-            slide.animateTo(1f, spring(dampingRatio = 1f, stiffness = 520f))
-            onClose()
-        }
-    }
-
-    Dialog(onDismissRequest = close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f * (1f - slide.value)))) {
-            Column(
-                Modifier
-                    .fillMaxSize()
-                    .windowInsetsPadding(WindowInsets.statusBars)
-                    .padding(top = 10.dp)
-                    .graphicsLayer { translationY = size.height * slide.value }
-                    .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
-                    .background(c.background),
+    IosSheet(title = "История изменений", onClose = onClose) {
+        val list = releases
+        when {
+            list == null -> Box(Modifier.fillMaxWidth().padding(top = 40.dp), contentAlignment = Alignment.Center) { IosSpinner() }
+            list.isEmpty() -> Text(
+                "Не удалось прочитать историю изменений.",
+                style = IosType.body,
+                color = c.secondaryLabel,
+                modifier = Modifier.padding(32.dp),
+            )
+            else -> LazyColumn(
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 40.dp),
+                modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
             ) {
-                Box(Modifier.fillMaxWidth().height(52.dp)) {
-                    Text("История изменений", style = IosType.headline, color = c.label, modifier = Modifier.align(Alignment.Center))
-                    Text(
-                        "Готово",
-                        style = IosType.body.copy(fontWeight = FontWeight.SemiBold),
-                        color = c.tint,
-                        modifier = Modifier.align(Alignment.CenterEnd).clickable(onClick = close).padding(horizontal = 16.dp, vertical = 12.dp),
-                    )
-                }
-                HorizontalDivider(thickness = 0.5.dp, color = c.separator)
-
-                val list = releases
-                when {
-                    list == null -> Box(Modifier.fillMaxWidth().padding(top = 40.dp), contentAlignment = Alignment.Center) { IosSpinner() }
-                    list.isEmpty() -> Text(
-                        "Не удалось прочитать историю изменений.",
-                        style = IosType.body,
-                        color = c.secondaryLabel,
-                        modifier = Modifier.padding(32.dp),
-                    )
-                    else -> LazyColumn(
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 40.dp),
-                        modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
-                    ) {
-                        items(list, key = { it.version }) { release -> ReleaseCard(release) }
-                    }
-                }
+                items(list, key = { it.version }) { release -> ReleaseCard(release) }
             }
         }
     }

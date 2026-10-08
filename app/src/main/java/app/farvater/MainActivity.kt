@@ -3,17 +3,24 @@ package app.farvater
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.addCallback
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import app.farvater.data.ThemeMode
 import app.farvater.data.UpdateWorker
 import app.farvater.net.ImportLink
 import app.farvater.ui.MainViewModel
@@ -53,7 +60,28 @@ class MainActivity : ComponentActivity() {
         }
 
         if (savedInstanceState == null) handleDeepLink(intent)
-        setContent { FarvaterTheme { FarvaterRoot(vm) } }
+        setContent {
+            val state by vm.state.collectAsStateWithLifecycle()
+            val settings = state.settings
+            val dark = when (settings.themeMode) {
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+            }
+            LaunchedEffect(dark) { applySystemBars(dark) }
+            FarvaterTheme(darkTheme = dark, style = settings.uiStyle, dynamicColor = settings.dynamicColor) {
+                FarvaterRoot(vm)
+            }
+        }
+    }
+
+    private fun applySystemBars(dark: Boolean) {
+        val style = if (dark) {
+            SystemBarStyle.dark(Color.TRANSPARENT)
+        } else {
+            SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+        }
+        enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
     }
 
     override fun onStart() {

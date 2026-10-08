@@ -46,6 +46,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
@@ -60,6 +61,9 @@ import androidx.compose.ui.unit.dp
 import app.farvater.ui.ios.glassRim
 import app.farvater.ui.theme.Ios
 import kotlinx.coroutines.delay
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 enum class ConnectMode { Idle, Searching, Connecting, Connected, Error }
 
@@ -72,7 +76,9 @@ fun ConnectButton(
 ) {
     val scheme = MaterialTheme.colorScheme
     val haptics = LocalHapticFeedback.current
-    val dark = Ios.colors.dark
+    val c = Ios.colors
+    val material = Ios.material
+    val dark = c.dark
     val rim = glassRim(dark)
 
     var previous by remember { mutableStateOf(mode) }
@@ -89,17 +95,21 @@ fun ConnectButton(
 
     val lamp by animateColorAsState(
         targetValue = when (mode) {
-            ConnectMode.Idle -> scheme.surfaceContainerHigh
+            ConnectMode.Idle -> if (material) scheme.primaryContainer else scheme.surfaceContainerHigh
             ConnectMode.Searching, ConnectMode.Connecting -> scheme.primary
-            ConnectMode.Connected -> scheme.tertiary
-            ConnectMode.Error -> scheme.error
+            ConnectMode.Connected -> c.green
+            ConnectMode.Error -> c.red
         },
         animationSpec = spring(stiffness = Spring.StiffnessLow),
         label = "lamp",
     )
     val idleRing = scheme.primary
     val glyph by animateColorAsState(
-        targetValue = if (mode == ConnectMode.Idle) scheme.primary else scheme.background,
+        targetValue = when {
+            mode != ConnectMode.Idle -> scheme.surface
+            material -> scheme.onPrimaryContainer
+            else -> scheme.primary
+        },
         label = "glyph",
     )
 
@@ -174,7 +184,7 @@ fun ConnectButton(
                 }
             }
 
-            if (beamStrength > 0f) {
+            if (beamStrength > 0f && !material) {
                 rotate(angle * 360f) {
                     drawCircle(
                         brush = Brush.sweepGradient(
@@ -188,39 +198,43 @@ fun ConnectButton(
                 }
             }
 
-            if (mode == ConnectMode.Idle) {
+            if (mode == ConnectMode.Idle && !material) {
                 drawCircle(
                     color = idleRing.copy(alpha = 0.45f),
                     radius = lampRadius + 7.dp.toPx(),
                     style = Stroke(width = 1.5.dp.toPx()),
                 )
             }
-            val c = center
-            drawCircle(
-                brush = Brush.radialGradient(
-                    listOf(lerp(lamp, Color.White, 0.10f), lamp, lerp(lamp, Color.Black, 0.08f)),
-                    center = c + Offset(0f, -lampRadius * 0.3f),
-                    radius = lampRadius * 1.4f,
-                ),
-                radius = lampRadius,
-            )
-            drawCircle(
-                brush = Brush.radialGradient(
-                    listOf(Color.White.copy(alpha = if (dark) 0.14f else 0.3f), Color.Transparent),
-                    center = c + Offset(0f, lampRadius * 0.85f),
-                    radius = lampRadius * 0.7f,
-                ),
-                radius = lampRadius,
-            )
-            drawCircle(
-                brush = Brush.linearGradient(
-                    rim,
-                    start = Offset(c.x - lampRadius, c.y - lampRadius),
-                    end = Offset(c.x + lampRadius, c.y + lampRadius),
-                ),
-                radius = lampRadius - 0.75.dp.toPx(),
-                style = Stroke(width = 1.5.dp.toPx()),
-            )
+            if (material) {
+                val turn = if (spinning) angle * 2f * PI.toFloat() / 9f else 0f
+                drawPath(cookie(center, lampRadius * 1.06f, turn), color = lamp)
+            } else {
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        listOf(lerp(lamp, Color.White, 0.10f), lamp, lerp(lamp, Color.Black, 0.08f)),
+                        center = center + Offset(0f, -lampRadius * 0.3f),
+                        radius = lampRadius * 1.4f,
+                    ),
+                    radius = lampRadius,
+                )
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        listOf(Color.White.copy(alpha = if (dark) 0.14f else 0.3f), Color.Transparent),
+                        center = center + Offset(0f, lampRadius * 0.85f),
+                        radius = lampRadius * 0.7f,
+                    ),
+                    radius = lampRadius,
+                )
+                drawCircle(
+                    brush = Brush.linearGradient(
+                        rim,
+                        start = Offset(center.x - lampRadius, center.y - lampRadius),
+                        end = Offset(center.x + lampRadius, center.y + lampRadius),
+                    ),
+                    radius = lampRadius - 0.75.dp.toPx(),
+                    style = Stroke(width = 1.5.dp.toPx()),
+                )
+            }
         }
 
         Box(
@@ -255,6 +269,20 @@ fun ConnectButton(
 }
 
 private const val PULSE_MS = 2600
+
+private fun cookie(center: Offset, radius: Float, rotation: Float): Path {
+    val path = Path()
+    val steps = 180
+    for (i in 0..steps) {
+        val t = i.toFloat() / steps * 2f * PI.toFloat()
+        val r = radius * (0.92f + 0.08f * cos(9f * t))
+        val x = center.x + r * cos(t + rotation)
+        val y = center.y + r * sin(t + rotation)
+        if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+    }
+    path.close()
+    return path
+}
 
 @Composable
 private fun loop(active: Boolean, durationMs: Int, easing: Easing, label: String): State<Float> {

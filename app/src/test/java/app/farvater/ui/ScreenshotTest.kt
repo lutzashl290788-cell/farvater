@@ -12,6 +12,7 @@ import app.farvater.core.model.Protocol
 import app.farvater.core.model.ProxyNode
 import app.farvater.core.model.SourceMode
 import app.farvater.data.AppSettings
+import app.farvater.data.UiStyle
 import app.farvater.engine.TestMethod
 import app.farvater.engine.TestResult
 import app.farvater.ui.screens.HomeScreen
@@ -54,10 +55,24 @@ class ScreenshotTest {
         OnboardingDialog(onChoice = {}, onOpenDocument = {})
     }
 
+    @Test fun materialHomeIdleLight() = shot("11_material_home_idle_light", dark = false, material = true) { Home(VpnState.Idle) }
+    @Test fun materialHomeConnectedDark() = shot("12_material_home_connected_dark", dark = true, material = true) { Home(Fake.connected) }
+    @Test fun materialServersLight() = shot("14_material_servers_light", dark = false, material = true) { Servers() }
+    @Test fun materialServersDark() = shot("14_material_servers_dark", dark = true, material = true) { Servers() }
+    @Test fun materialSourcesLight() = shot("15_material_sources_light", dark = false, material = true) { Sources() }
+    @Test fun materialSettingsLight() = shot("16_material_settings_light", dark = false, material = true) { Settings() }
+    @Test fun materialSettingsDark() = shot("16_material_settings_dark", dark = true, material = true) { Settings() }
+
     @OptIn(ExperimentalRoborazziApi::class)
-    private fun shot(name: String, dark: Boolean, screen: Boolean = false, content: @Composable () -> Unit) {
+    private fun shot(name: String, dark: Boolean, screen: Boolean = false, material: Boolean = false, content: @Composable () -> Unit) {
         rule.mainClock.autoAdvance = false
-        rule.setContent { FarvaterTheme(darkTheme = dark) { content() } }
+        rule.setContent {
+            FarvaterTheme(
+                darkTheme = dark,
+                style = if (material) UiStyle.MATERIAL else UiStyle.IOS,
+                dynamicColor = false,
+            ) { content() }
+        }
         rule.mainClock.advanceTimeBy(1_500)
         val path = "build/outputs/roborazzi/$name.png"
         if (screen) captureScreenRoboImage(path) else rule.onRoot().captureRoboImage(path)

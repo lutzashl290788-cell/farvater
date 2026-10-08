@@ -38,6 +38,9 @@ import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -89,6 +92,16 @@ internal fun FarvaterFrame(
     snackbar: SnackbarHostState = remember { SnackbarHostState() },
     content: @Composable (PaddingValues) -> Unit,
 ) {
+    if (Ios.material) MaterialFrame(tab, onTab, snackbar, content) else GlassFrame(tab, onTab, snackbar, content)
+}
+
+@Composable
+private fun GlassFrame(
+    tab: Tab,
+    onTab: (Tab) -> Unit,
+    snackbar: SnackbarHostState,
+    content: @Composable (PaddingValues) -> Unit,
+) {
     val c = Ios.colors
     val navInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val bottomInset: Dp = navInset + BarHeight + BarGap * 2
@@ -129,6 +142,44 @@ internal fun FarvaterFrame(
                     .align(Alignment.BottomCenter)
                     .padding(start = 20.dp, end = 20.dp, bottom = navInset + BarGap),
             )
+        }
+    }
+}
+
+@Composable
+private fun MaterialFrame(
+    tab: Tab,
+    onTab: (Tab) -> Unit,
+    snackbar: SnackbarHostState,
+    content: @Composable (PaddingValues) -> Unit,
+) {
+    val c = Ios.colors
+    val haptics = LocalHapticFeedback.current
+    val navInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val bottomInset: Dp = navInset + 80.dp
+    Surface(color = c.background, contentColor = c.label, modifier = Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxSize()) {
+            CompositionLocalProvider(LocalBottomInset provides bottomInset) {
+                content(WindowInsets.statusBars.asPaddingValues())
+            }
+            SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = bottomInset + 8.dp)) { data ->
+                Snackbar(data, modifier = Modifier.padding(horizontal = 16.dp), shape = RoundedCornerShape(12.dp))
+            }
+            NavigationBar(modifier = Modifier.align(Alignment.BottomCenter), containerColor = c.bar) {
+                Tab.entries.forEach { t ->
+                    NavigationBarItem(
+                        selected = t == tab,
+                        onClick = {
+                            if (t != tab) {
+                                haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                onTab(t)
+                            }
+                        },
+                        icon = { Icon(if (t == tab) t.icon else t.iconIdle, contentDescription = null) },
+                        label = { Text(t.title, maxLines = 1) },
+                    )
+                }
+            }
         }
     }
 }

@@ -1,5 +1,7 @@
 package app.farvater.ui.ios
 
+import android.os.Build
+import android.view.WindowManager
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
@@ -27,6 +29,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,8 +38,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
@@ -44,19 +49,31 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Cancel
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -64,6 +81,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
@@ -71,8 +89,10 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -80,11 +100,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
 import app.farvater.ui.theme.Ios
 import app.farvater.ui.theme.IosMotion
 import app.farvater.ui.theme.IosType
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -115,21 +138,30 @@ fun Modifier.iosPress(
 
 @OptIn(ExperimentalFoundationApi::class)
 fun Modifier.iosRowPress(onLongClick: (() -> Unit)? = null, onClick: () -> Unit): Modifier = composed {
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    val c = Ios.colors
-    val bg by animateColorAsState(
-        if (pressed) c.highlight else Color.Transparent,
-        if (pressed) snap() else tween(320),
-        label = "row",
-    )
-    background(bg).combinedClickable(
-        interactionSource = interaction,
-        indication = null,
-        onLongClick = onLongClick,
-        onClick = onClick,
-    )
+    if (Ios.material) {
+        combinedClickable(onLongClick = onLongClick, onClick = onClick)
+    } else {
+        val interaction = remember { MutableInteractionSource() }
+        val pressed by interaction.collectIsPressedAsState()
+        val c = Ios.colors
+        val bg by animateColorAsState(
+            if (pressed) c.highlight else Color.Transparent,
+            if (pressed) snap() else tween(320),
+            label = "row",
+        )
+        background(bg).combinedClickable(
+            interactionSource = interaction,
+            indication = null,
+            onLongClick = onLongClick,
+            onClick = onClick,
+        )
+    }
 }
+
+val SectionCorner = 24.dp
+
+val SheetCorner: Dp
+    @Composable @ReadOnlyComposable get() = if (Ios.material) 28.dp else 34.dp
 
 @Composable
 fun IosLargeTitle(
@@ -139,13 +171,33 @@ fun IosLargeTitle(
     trailing: @Composable RowScope.() -> Unit = {},
 ) {
     val c = Ios.colors
+    val material = Ios.material
     Row(
-        modifier.fillMaxWidth().padding(start = 20.dp, end = 16.dp, top = 12.dp, bottom = 10.dp),
+        modifier
+            .fillMaxWidth()
+            .padding(
+                start = 20.dp,
+                end = if (material) 12.dp else 16.dp,
+                top = if (material) 28.dp else 12.dp,
+                bottom = if (material) 14.dp else 10.dp,
+            ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(title, style = IosType.largeTitle, color = c.label, maxLines = 1)
-            if (subtitle != null) Text(subtitle, style = IosType.subheadline, color = c.secondaryLabel, maxLines = 1)
+            Text(
+                title,
+                style = if (material) MaterialTheme.typography.headlineLarge else IosType.largeTitle,
+                color = c.label,
+                maxLines = 1,
+            )
+            if (subtitle != null) {
+                Text(
+                    subtitle,
+                    style = if (material) MaterialTheme.typography.bodyMedium else IosType.subheadline,
+                    color = c.secondaryLabel,
+                    maxLines = 1,
+                )
+            }
         }
         trailing()
     }
@@ -156,9 +208,25 @@ fun IosCompactBar(title: String, visible: Boolean, modifier: Modifier = Modifier
     val c = Ios.colors
     val p by animateFloatAsState(if (visible) 1f else 0f, tween(180), label = "bar")
     if (p == 0f) return
-    Column(
+    if (Ios.material) {
+        Box(
+            modifier.fillMaxWidth().height(64.dp).graphicsLayer { alpha = p }.background(c.bar),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            Text(
+                title,
+                style = MaterialTheme.typography.titleLarge,
+                color = c.label,
+                maxLines = 1,
+                modifier = Modifier.padding(horizontal = 20.dp),
+            )
+        }
+        return
+    }
+    Box(
         modifier
             .fillMaxWidth()
+            .height(44.dp)
             .graphicsLayer { alpha = p }
             .liquidGlass(
                 backdrop,
@@ -166,16 +234,14 @@ fun IosCompactBar(title: String, visible: Boolean, modifier: Modifier = Modifier
                 GlassStyles.Chrome,
                 tint = c.background.copy(alpha = if (c.dark) 0.55f else 0.6f),
             ),
+        contentAlignment = Alignment.Center,
     ) {
-        Box(Modifier.fillMaxWidth().height(44.dp), contentAlignment = Alignment.Center) {
-            Text(
-                title,
-                style = IosType.headline,
-                color = c.label,
-                modifier = Modifier.graphicsLayer { translationY = (1f - p) * 8.dp.toPx() },
-            )
-        }
-        HorizontalDivider(thickness = 0.5.dp, color = c.separator)
+        Text(
+            title,
+            style = IosType.headline,
+            color = c.label,
+            modifier = Modifier.graphicsLayer { translationY = (1f - p) * 8.dp.toPx() },
+        )
     }
 }
 
@@ -188,16 +254,22 @@ fun IosSection(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val c = Ios.colors
+    val material = Ios.material
     Column(modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-        if (header != null) {
-            Text(
+        when {
+            header != null && material -> Text(
+                header,
+                style = MaterialTheme.typography.titleSmall,
+                color = c.tint,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 8.dp),
+            )
+            header != null -> Text(
                 header.uppercase(),
                 style = IosType.footnote,
                 color = c.secondaryLabel,
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 22.dp, bottom = 7.dp),
             )
-        } else {
-            Spacer(Modifier.height(20.dp))
+            else -> Spacer(Modifier.height(if (material) 16.dp else 20.dp))
         }
         Column(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(SectionCorner)).background(c.cell),
@@ -206,9 +278,9 @@ fun IosSection(
         if (footer != null) {
             Text(
                 footer,
-                style = IosType.footnote,
+                style = if (material) MaterialTheme.typography.bodySmall else IosType.footnote,
                 color = footerColor ?: c.secondaryLabel,
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 7.dp),
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = if (material) 8.dp else 7.dp),
             )
         }
     }
@@ -216,16 +288,31 @@ fun IosSection(
 
 @Composable
 fun IosDivider(start: Dp = 16.dp) {
-    HorizontalDivider(Modifier.padding(start = start), thickness = 0.5.dp, color = Ios.colors.separator)
+    val c = Ios.colors
+    if (Ios.material) {
+        Box(Modifier.fillMaxWidth().height(2.dp).background(c.background))
+    } else {
+        HorizontalDivider(Modifier.padding(start = start), thickness = 0.5.dp, color = c.separator)
+    }
 }
 
 @Composable
 fun IosIcon(icon: ImageVector, tint: Color, size: Dp = 29.dp) {
-    Box(
-        Modifier.size(size).clip(RoundedCornerShape(size * 0.24f)).background(tint),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(size * 0.64f))
+    val c = Ios.colors
+    if (Ios.material) {
+        Box(
+            Modifier.size(size + 7.dp).clip(CircleShape).background(tint.copy(alpha = if (c.dark) 0.2f else 0.13f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(size * 0.7f))
+        }
+    } else {
+        Box(
+            Modifier.size(size).clip(RoundedCornerShape(size * 0.24f)).background(tint),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(size * 0.64f))
+        }
     }
 }
 
@@ -248,28 +335,34 @@ fun IosRow(
     trailing: (@Composable RowScope.() -> Unit)? = null,
 ) {
     val c = Ios.colors
+    val material = Ios.material
+    val showChevron = chevron && !material
+    val titleStyle = if (material) MaterialTheme.typography.bodyLarge else IosType.body
+    val subtitleStyle = if (material) MaterialTheme.typography.bodyMedium else IosType.footnote
+    val valueStyle = if (material) MaterialTheme.typography.bodyMedium else IosType.body
+    val vertical = if (material) 10.dp else 9.dp
     Row(
         modifier
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.iosRowPress(onLongClick, onClick) else Modifier)
-            .heightIn(min = 50.dp)
-            .padding(start = 16.dp, end = if (chevron) 10.dp else 16.dp, top = 9.dp, bottom = 9.dp),
+            .heightIn(min = if (material) 56.dp else 50.dp)
+            .padding(start = 16.dp, end = if (showChevron) 10.dp else 16.dp, top = vertical, bottom = vertical),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) {
             IosIcon(icon, iconTint)
-            Spacer(Modifier.width(14.dp))
+            Spacer(Modifier.width(if (material) 16.dp else 14.dp))
         }
         if (leading != null) {
             leading()
             Spacer(Modifier.width(12.dp))
         }
         Column(Modifier.weight(1f)) {
-            Text(title, style = IosType.body, color = titleColor ?: c.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(title, style = titleStyle, color = titleColor ?: c.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (subtitle != null) {
                 Text(
                     subtitle,
-                    style = IosType.footnote,
+                    style = subtitleStyle,
                     color = subtitleColor ?: c.secondaryLabel,
                     maxLines = subtitleLines,
                     overflow = TextOverflow.Ellipsis,
@@ -278,13 +371,13 @@ fun IosRow(
         }
         if (value != null) {
             Spacer(Modifier.width(8.dp))
-            Text(value, style = IosType.body, color = valueColor ?: c.secondaryLabel, maxLines = 1)
+            Text(value, style = valueStyle, color = valueColor ?: c.secondaryLabel, maxLines = 1)
         }
         if (trailing != null) {
             Spacer(Modifier.width(8.dp))
             trailing()
         }
-        if (chevron) {
+        if (showChevron) {
             Spacer(Modifier.width(4.dp))
             Icon(
                 Icons.AutoMirrored.Rounded.KeyboardArrowRight,
@@ -297,20 +390,60 @@ fun IosRow(
 }
 
 @Composable
+fun IosChoiceRow(title: String, selected: Boolean, onClick: () -> Unit, subtitle: String? = null) {
+    val c = Ios.colors
+    if (Ios.material) {
+        IosRow(
+            title = title,
+            subtitle = subtitle,
+            onClick = onClick,
+            leading = { RadioButton(selected = selected, onClick = null) },
+        )
+    } else {
+        IosRow(
+            title = title,
+            subtitle = subtitle,
+            onClick = onClick,
+            trailing = {
+                if (selected) {
+                    Icon(Icons.Rounded.Check, contentDescription = "Выбрано", tint = c.tint, modifier = Modifier.size(22.dp))
+                }
+            },
+        )
+    }
+}
+
+@Composable
 fun IosSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
     val c = Ios.colors
     val haptics = LocalHapticFeedback.current
+    if (Ios.material) {
+        Switch(
+            checked = checked,
+            onCheckedChange = {
+                haptics.performHapticFeedback(HapticFeedbackType.ToggleOn)
+                onCheckedChange(it)
+            },
+            modifier = modifier,
+        )
+        return
+    }
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val progress by animateFloatAsState(
         if (checked) 1f else 0f,
-        spring(dampingRatio = 0.75f, stiffness = 420f),
+        spring(dampingRatio = 0.72f, stiffness = 420f),
         label = "switch",
     )
-    val thumbWidth by animateDpAsState(if (pressed) 33.dp else 27.dp, spring(stiffness = 600f), label = "thumb")
+    val thumbWidth by animateDpAsState(
+        if (pressed) 44.dp else 37.dp,
+        spring(dampingRatio = 0.6f, stiffness = 600f),
+        label = "thumb",
+    )
+    val glass by animateFloatAsState(if (pressed) 1f else 0f, spring(stiffness = 500f), label = "glass")
     Box(
         modifier
-            .size(51.dp, 31.dp)
+            .size(62.dp, 28.dp)
             .clip(CircleShape)
             .background(lerp(c.fill, c.green, progress))
             .toggleable(
@@ -327,25 +460,51 @@ fun IosSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit, modifier: Mo
     ) {
         Box(
             Modifier
-                .offset { IntOffset(((47.dp - thumbWidth).toPx() * progress).roundToInt(), 0) }
-                .size(thumbWidth, 27.dp)
+                .offset { IntOffset(((58.dp - thumbWidth).toPx() * progress).roundToInt(), 0) }
+                .size(thumbWidth, 24.dp)
+                .graphicsLayer {
+                    scaleX = 1f + glass * 0.04f
+                    scaleY = 1f + glass * 0.1f
+                }
                 .shadow(3.dp, CircleShape)
-                .background(Color.White, CircleShape),
+                .background(Color.White.copy(alpha = 1f - glass * 0.3f), CircleShape)
+                .border(1.dp, Brush.linearGradient(glassRim(c.dark)), CircleShape),
         )
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IosSegmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
     val c = Ios.colors
     val haptics = LocalHapticFeedback.current
+    val pick: (Int) -> Unit = { i ->
+        if (i != selected) {
+            haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+            onSelect(i)
+        }
+    }
+    if (Ios.material) {
+        SingleChoiceSegmentedButtonRow(modifier.fillMaxWidth()) {
+            options.forEachIndexed { i, label ->
+                SegmentedButton(
+                    selected = i == selected,
+                    onClick = { pick(i) },
+                    shape = SegmentedButtonDefaults.itemShape(index = i, count = options.size),
+                    icon = { if (options.size <= 3) SegmentedButtonDefaults.Icon(i == selected) },
+                    label = { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                )
+            }
+        }
+        return
+    }
     BoxWithConstraints(
         modifier
             .fillMaxWidth()
-            .height(34.dp)
-            .clip(RoundedCornerShape(9.dp))
+            .height(36.dp)
+            .clip(CircleShape)
             .background(c.fill)
-            .padding(2.dp),
+            .padding(3.dp),
     ) {
         val segment = maxWidth / options.size
         val x by animateDpAsState(
@@ -358,8 +517,9 @@ fun IosSegmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit, 
                 .offset { IntOffset(x.roundToPx(), 0) }
                 .width(segment)
                 .fillMaxHeight()
-                .shadow(2.dp, RoundedCornerShape(7.dp))
-                .background(c.segmentThumb, RoundedCornerShape(7.dp)),
+                .shadow(2.dp, CircleShape)
+                .background(c.segmentThumb, CircleShape)
+                .border(0.75.dp, Brush.linearGradient(glassRim(c.dark)), CircleShape),
         )
         Row(Modifier.fillMaxSize()) {
             options.forEachIndexed { i, label ->
@@ -367,12 +527,7 @@ fun IosSegmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit, 
                     Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .clickable(remember { MutableInteractionSource() }, indication = null) {
-                            if (i != selected) {
-                                haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                                onSelect(i)
-                            }
-                        },
+                        .clickable(remember { MutableInteractionSource() }, indication = null) { pick(i) },
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -390,24 +545,33 @@ fun IosSegmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit, 
 @Composable
 fun IosSearchField(value: String, onValueChange: (String) -> Unit, placeholder: String, modifier: Modifier = Modifier) {
     val c = Ios.colors
+    val material = Ios.material
+    val textStyle = if (material) MaterialTheme.typography.bodyLarge else IosType.body
     Row(
         modifier
             .fillMaxWidth()
-            .height(38.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(c.fill.copy(alpha = if (c.dark) 0.7f else 1f))
-            .padding(horizontal = 8.dp),
+            .height(if (material) 56.dp else 44.dp)
+            .clip(CircleShape)
+            .background(
+                if (material) MaterialTheme.colorScheme.surfaceContainerHigh else c.fill.copy(alpha = if (c.dark) 0.7f else 1f),
+            )
+            .padding(horizontal = if (material) 16.dp else 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Rounded.Search, contentDescription = null, tint = c.secondaryLabel, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(6.dp))
+        Icon(
+            Icons.Rounded.Search,
+            contentDescription = null,
+            tint = c.secondaryLabel,
+            modifier = Modifier.size(if (material) 24.dp else 20.dp),
+        )
+        Spacer(Modifier.width(if (material) 12.dp else 8.dp))
         Box(Modifier.weight(1f)) {
-            if (value.isEmpty()) Text(placeholder, style = IosType.body, color = c.secondaryLabel, maxLines = 1)
+            if (value.isEmpty()) Text(placeholder, style = textStyle, color = c.secondaryLabel, maxLines = 1)
             BasicTextField(
                 value = value,
                 onValueChange = onValueChange,
                 singleLine = true,
-                textStyle = IosType.body.copy(color = c.label),
+                textStyle = textStyle.copy(color = c.label),
                 cursorBrush = SolidColor(c.tint),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -417,7 +581,7 @@ fun IosSearchField(value: String, onValueChange: (String) -> Unit, placeholder: 
                 Icons.Rounded.Cancel,
                 contentDescription = "Очистить",
                 tint = c.secondaryLabel,
-                modifier = Modifier.size(18.dp).clip(CircleShape).clickable { onValueChange("") },
+                modifier = Modifier.size(20.dp).clip(CircleShape).clickable { onValueChange("") },
             )
         }
     }
@@ -426,20 +590,23 @@ fun IosSearchField(value: String, onValueChange: (String) -> Unit, placeholder: 
 @Composable
 fun IosTextField(value: String, onValueChange: (String) -> Unit, placeholder: String, modifier: Modifier = Modifier) {
     val c = Ios.colors
+    val material = Ios.material
+    val shape = RoundedCornerShape(if (material) 12.dp else 10.dp)
+    val textStyle = if (material) MaterialTheme.typography.bodyLarge else IosType.subheadline
     Box(
         modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(shape)
             .background(c.cell)
-            .border(0.5.dp, c.separator, RoundedCornerShape(8.dp))
-            .padding(horizontal = 10.dp, vertical = 8.dp),
+            .border(if (material) 1.dp else 0.5.dp, if (material) c.tertiaryLabel else c.separator, shape)
+            .padding(horizontal = if (material) 16.dp else 12.dp, vertical = if (material) 14.dp else 10.dp),
     ) {
-        if (value.isEmpty()) Text(placeholder, style = IosType.subheadline, color = c.tertiaryLabel, maxLines = 1)
+        if (value.isEmpty()) Text(placeholder, style = textStyle, color = c.tertiaryLabel, maxLines = 1)
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
-            textStyle = IosType.subheadline.copy(color = c.label),
+            textStyle = textStyle.copy(color = c.label),
             cursorBrush = SolidColor(c.tint),
             modifier = Modifier.fillMaxWidth(),
         )
@@ -458,6 +625,39 @@ fun IosButton(
     icon: ImageVector? = null,
     enabled: Boolean = true,
 ) {
+    val c = Ios.colors
+    if (Ios.material) {
+        val scheme = MaterialTheme.colorScheme
+        val brand = color == c.tint
+        val bg = when (style) {
+            IosButtonStyle.Filled -> if (brand) scheme.primary else color
+            IosButtonStyle.Tinted -> if (brand) scheme.secondaryContainer else color.copy(alpha = 0.16f)
+            IosButtonStyle.Plain -> Color.Transparent
+        }
+        val fg = when (style) {
+            IosButtonStyle.Filled -> if (brand) scheme.onPrimary else Color.White
+            IosButtonStyle.Tinted -> if (brand) scheme.onSecondaryContainer else color
+            IosButtonStyle.Plain -> color
+        }
+        Row(
+            modifier
+                .heightIn(min = 48.dp)
+                .graphicsLayer { alpha = if (enabled) 1f else 0.38f }
+                .clip(CircleShape)
+                .background(bg)
+                .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+                .padding(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (icon != null) {
+                Icon(icon, contentDescription = null, tint = fg, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+            }
+            Text(text, style = MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp), color = fg, maxLines = 1)
+        }
+        return
+    }
     val bg = when (style) {
         IosButtonStyle.Filled -> color
         IosButtonStyle.Tinted -> color.copy(alpha = 0.16f)
@@ -471,6 +671,13 @@ fun IosButton(
             .iosPress(enabled = enabled, onClick = onClick)
             .clip(CircleShape)
             .background(bg)
+            .then(
+                if (style == IosButtonStyle.Plain) {
+                    Modifier
+                } else {
+                    Modifier.border(1.dp, Brush.linearGradient(glassRim(c.dark)), CircleShape)
+                },
+            )
             .padding(horizontal = 20.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
@@ -486,6 +693,25 @@ fun IosButton(
 @Composable
 fun IosCircleButton(icon: ImageVector, description: String, onClick: () -> Unit, tint: Color = Ios.colors.tint) {
     val c = Ios.colors
+    if (Ios.material) {
+        val scheme = MaterialTheme.colorScheme
+        Box(
+            Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(scheme.secondaryContainer)
+                .clickable(role = Role.Button, onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                icon,
+                contentDescription = description,
+                tint = if (tint == c.tint) scheme.onSecondaryContainer else tint,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        return
+    }
     Box(
         Modifier
             .size(40.dp)
@@ -497,7 +723,15 @@ fun IosCircleButton(icon: ImageVector, description: String, onClick: () -> Unit,
     }
 }
 
-val SectionCorner = 20.dp
+@Composable
+fun IosGrabber(modifier: Modifier = Modifier) {
+    val c = Ios.colors
+    if (Ios.material) {
+        Box(modifier.size(32.dp, 4.dp).clip(CircleShape).background(c.secondaryLabel.copy(alpha = 0.4f)))
+    } else {
+        Box(modifier.size(36.dp, 5.dp).clip(CircleShape).background(c.tertiaryLabel))
+    }
+}
 
 @Composable
 fun IosPushedPage(
@@ -509,41 +743,186 @@ fun IosPushedPage(
 ) {
     val c = Ios.colors
     val scroll = rememberScrollState()
-    Column(modifier.fillMaxSize().background(c.background)) {
-        Box(Modifier.fillMaxWidth().height(52.dp)) {
+    if (Ios.material) {
+        Column(modifier.fillMaxSize().background(c.background)) {
             Row(
                 Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(start = 6.dp)
-                    .iosPress(scaleTo = 0.94f, onClick = onBack)
-                    .padding(horizontal = 6.dp, vertical = 8.dp),
+                    .fillMaxWidth()
+                    .background(if (scroll.value > 4) c.bar else c.background)
+                    .height(64.dp)
+                    .padding(start = 4.dp, end = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    Modifier.size(48.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onBack),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = backTitle, tint = c.label)
+                }
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = c.label,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Column(Modifier.fillMaxSize().verticalScroll(scroll), content = content)
+        }
+        return
+    }
+    val backdrop = rememberGlassBackdrop()
+    Box(modifier.fillMaxSize().background(c.background)) {
+        Column(Modifier.fillMaxSize().glassSource(backdrop).verticalScroll(scroll)) {
+            Spacer(Modifier.height(56.dp))
+            content()
+        }
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .then(
+                    if (scroll.value > 4) {
+                        Modifier.liquidGlass(
+                            backdrop,
+                            RectangleShape,
+                            GlassStyles.Chrome,
+                            tint = c.background.copy(alpha = if (c.dark) 0.55f else 0.6f),
+                        )
+                    } else {
+                        Modifier
+                    },
+                ),
+        ) {
+            Box(
+                Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 12.dp)
+                    .size(40.dp)
+                    .iosPress(scaleTo = 0.88f, onClick = onBack)
+                    .liquidGlass(null, CircleShape, GlassStyles.Control, fallback = glassControlFill(c.dark)),
+                contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
-                    contentDescription = "Назад",
-                    tint = c.tint,
-                    modifier = Modifier.size(30.dp),
+                    contentDescription = backTitle,
+                    tint = c.label,
+                    modifier = Modifier.size(28.dp),
                 )
-                Text(backTitle, style = IosType.body, color = c.tint, maxLines = 1)
             }
             Text(
                 title,
                 style = IosType.headline,
                 color = c.label,
                 maxLines = 1,
-                modifier = Modifier.align(Alignment.Center).padding(horizontal = 120.dp),
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.align(Alignment.Center).padding(horizontal = 64.dp),
             )
-            if (scroll.value > 4) {
-                HorizontalDivider(Modifier.align(Alignment.BottomCenter), thickness = 0.5.dp, color = c.separator)
+        }
+    }
+}
+
+@Composable
+fun IosSheet(title: String, onClose: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+    val c = Ios.colors
+    val material = Ios.material
+    val corner = SheetCorner
+    val scope = rememberCoroutineScope()
+    val slide = remember { Animatable(1f) }
+    LaunchedEffect(Unit) { slide.animateTo(0f, spring(dampingRatio = 0.9f, stiffness = 300f)) }
+    val close: () -> Unit = {
+        scope.launch {
+            slide.animateTo(1f, spring(dampingRatio = 1f, stiffness = 520f))
+            onClose()
+        }
+    }
+    Dialog(onDismissRequest = close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f * (1f - slide.value)))) {
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(top = 10.dp)
+                    .graphicsLayer { translationY = size.height * slide.value }
+                    .clip(RoundedCornerShape(topStart = corner, topEnd = corner))
+                    .background(c.background),
+            ) {
+                if (material) MaterialSheetHeader(title, close) else GlassSheetHeader(title, close)
+                content()
             }
         }
-        Column(Modifier.fillMaxSize().verticalScroll(scroll), content = content)
+    }
+}
+
+@Composable
+private fun GlassSheetHeader(title: String, onDone: () -> Unit) {
+    val c = Ios.colors
+    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        Spacer(Modifier.height(6.dp))
+        IosGrabber()
+        Box(Modifier.fillMaxWidth().height(56.dp)) {
+            Text(
+                title,
+                style = IosType.headline,
+                color = c.label,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.align(Alignment.Center).padding(horizontal = 72.dp),
+            )
+            Box(
+                Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 14.dp)
+                    .size(40.dp)
+                    .iosPress(scaleTo = 0.88f, onClick = onDone)
+                    .liquidGlass(null, CircleShape, GlassStyles.Control, fallback = c.tint),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Rounded.Check, contentDescription = "Готово", tint = Color.White, modifier = Modifier.size(22.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun MaterialSheetHeader(title: String, onClose: () -> Unit) {
+    val c = Ios.colors
+    Column(Modifier.fillMaxWidth()) {
+        IosGrabber(Modifier.align(Alignment.CenterHorizontally).padding(top = 10.dp))
+        Row(
+            Modifier.fillMaxWidth().height(64.dp).padding(start = 4.dp, end = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                Modifier.size(48.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onClose),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Rounded.Close, contentDescription = "Закрыть", tint = c.label)
+            }
+            Spacer(Modifier.width(8.dp))
+            Text(
+                title,
+                style = MaterialTheme.typography.titleLarge,
+                color = c.label,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
 
 @Composable
 fun IosSpinner(modifier: Modifier = Modifier, size: Dp = 20.dp, color: Color = Ios.colors.secondaryLabel) {
+    if (Ios.material) {
+        CircularProgressIndicator(
+            modifier = modifier.size(size),
+            color = MaterialTheme.colorScheme.primary,
+            strokeWidth = 2.5.dp,
+        )
+        return
+    }
     val step by rememberInfiniteTransition(label = "spinner").animateFloat(
         initialValue = 0f,
         targetValue = 8f,
@@ -571,8 +950,15 @@ fun IosSpinner(modifier: Modifier = Modifier, size: Dp = 20.dp, color: Color = I
 @Composable
 fun IosProgressBar(fraction: Float, modifier: Modifier = Modifier, color: Color = Ios.colors.tint) {
     val c = Ios.colors
+    val material = Ios.material
     val animated by animateFloatAsState(fraction.coerceIn(0f, 1f), spring(stiffness = 200f), label = "progress")
-    Box(modifier.fillMaxWidth().height(5.dp).clip(CircleShape).background(c.fill)) {
+    Box(
+        modifier
+            .fillMaxWidth()
+            .height(if (material) 6.dp else 5.dp)
+            .clip(CircleShape)
+            .background(if (material) color.copy(alpha = 0.22f) else c.fill),
+    ) {
         Box(Modifier.fillMaxWidth(animated).fillMaxHeight().clip(CircleShape).background(color))
     }
 }
@@ -590,68 +976,163 @@ fun IosAlert(
     message: String? = null,
     content: (@Composable () -> Unit)? = null,
 ) {
-    val c = Ios.colors
+    val material = Ios.material
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         val appear = remember { Animatable(0f) }
         LaunchedEffect(Unit) { appear.animateTo(1f, spring(dampingRatio = 0.82f, stiffness = 520f)) }
-        Surface(
-            shape = RoundedCornerShape(14.dp),
-            color = if (c.dark) c.cellRaised else Color(0xFFF2F2F2),
-            modifier = Modifier
-                .widthIn(max = 290.dp)
-                .graphicsLayer {
-                    val s = 1.12f - 0.12f * appear.value
-                    scaleX = s
-                    scaleY = s
-                    alpha = appear.value.coerceIn(0f, 1f)
-                },
-        ) {
-            Column {
-                Column(
-                    Modifier.padding(start = 16.dp, end = 16.dp, top = 19.dp, bottom = 16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(title, style = IosType.headline, color = c.label, textAlign = TextAlign.Center)
-                    if (message != null) {
-                        Spacer(Modifier.height(4.dp))
-                        Text(message, style = IosType.footnote, color = c.label, textAlign = TextAlign.Center)
-                    }
-                    if (content != null) {
-                        Spacer(Modifier.height(12.dp))
-                        content()
-                    }
-                }
-                HorizontalDivider(thickness = 0.5.dp, color = c.separator)
-                if (actions.size == 2) {
-                    Row(Modifier.height(46.dp)) {
-                        AlertButton(actions[0], Modifier.weight(1f).fillMaxHeight())
-                        Box(Modifier.width(0.5.dp).fillMaxHeight().background(c.separator))
-                        AlertButton(actions[1], Modifier.weight(1f).fillMaxHeight())
-                    }
-                } else {
-                    actions.forEachIndexed { i, action ->
-                        if (i > 0) HorizontalDivider(thickness = 0.5.dp, color = c.separator)
-                        AlertButton(action, Modifier.fillMaxWidth().height(46.dp))
-                    }
-                }
+        val motion = Modifier.graphicsLayer {
+            val s = 1.1f - 0.1f * appear.value
+            scaleX = s
+            scaleY = s
+            alpha = appear.value.coerceIn(0f, 1f)
+        }
+        if (material) {
+            MaterialAlert(title, actions, message, content, motion)
+        } else {
+            BlurBehind()
+            GlassAlert(title, actions, message, content, motion)
+        }
+    }
+}
+
+@Composable
+private fun BlurBehind(radius: Dp = 28.dp) {
+    val view = LocalView.current
+    val px = with(LocalDensity.current) { radius.roundToPx() }
+    LaunchedEffect(px) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val window = (view.parent as? DialogWindowProvider)?.window ?: return@LaunchedEffect
+            window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+            window.attributes = window.attributes.apply { blurBehindRadius = px }
+        }
+    }
+}
+
+@Composable
+private fun GlassAlert(
+    title: String,
+    actions: List<AlertAction>,
+    message: String?,
+    content: (@Composable () -> Unit)?,
+    motion: Modifier,
+) {
+    val c = Ios.colors
+    val shape = RoundedCornerShape(34.dp)
+    val shade = Color.Black.copy(alpha = 0.35f)
+    Column(
+        motion
+            .padding(horizontal = 24.dp)
+            .widthIn(max = 320.dp)
+            .shadow(30.dp, shape, ambientColor = shade, spotColor = shade)
+            .clip(shape)
+            .background(if (c.dark) Color(0xF0262628) else Color(0xF5FAFAFA))
+            .border(1.dp, Brush.linearGradient(glassRim(c.dark)), shape)
+            .padding(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 18.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(title, style = IosType.headline, color = c.label, textAlign = TextAlign.Center)
+        if (message != null) {
+            Spacer(Modifier.height(6.dp))
+            Text(message, style = IosType.subheadline, color = c.label, textAlign = TextAlign.Center)
+        }
+        if (content != null) {
+            Spacer(Modifier.height(14.dp))
+            content()
+        }
+        Spacer(Modifier.height(18.dp))
+        if (actions.size == 2) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                actions.forEach { GlassAlertButton(it, Modifier.weight(1f)) }
+            }
+        } else {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                actions.forEach { GlassAlertButton(it, Modifier.fillMaxWidth()) }
             }
         }
     }
 }
 
 @Composable
-private fun AlertButton(action: AlertAction, modifier: Modifier) {
+private fun GlassAlertButton(action: AlertAction, modifier: Modifier) {
     val c = Ios.colors
-    Box(modifier.iosRowPress(onClick = action.onClick), contentAlignment = Alignment.Center) {
+    val preferred = action.role == AlertRole.Preferred
+    Box(
+        modifier
+            .height(48.dp)
+            .iosPress(scaleTo = 0.95f, onClick = action.onClick)
+            .clip(CircleShape)
+            .background(if (preferred) c.tint else c.fill),
+        contentAlignment = Alignment.Center,
+    ) {
         Text(
             action.text,
             style = IosType.body.copy(
-                fontWeight = if (action.role == AlertRole.Preferred || action.role == AlertRole.Cancel) FontWeight.SemiBold else FontWeight.Normal,
+                fontWeight = if (preferred || action.role == AlertRole.Cancel) FontWeight.SemiBold else FontWeight.Medium,
             ),
-            color = if (action.role == AlertRole.Destructive) c.red else c.blue,
+            color = when {
+                preferred -> Color.White
+                action.role == AlertRole.Destructive -> c.red
+                else -> c.label
+            },
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 12.dp),
         )
     }
+}
+
+@Composable
+private fun MaterialAlert(
+    title: String,
+    actions: List<AlertAction>,
+    message: String?,
+    content: (@Composable () -> Unit)?,
+    motion: Modifier,
+) {
+    val c = Ios.colors
+    Column(
+        motion
+            .padding(horizontal = 32.dp)
+            .widthIn(min = 280.dp, max = 560.dp)
+            .clip(RoundedCornerShape(28.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .padding(24.dp),
+    ) {
+        Text(title, style = MaterialTheme.typography.headlineSmall, color = c.label)
+        if (message != null) {
+            Spacer(Modifier.height(16.dp))
+            Text(message, style = MaterialTheme.typography.bodyMedium, color = c.secondaryLabel)
+        }
+        if (content != null) {
+            Spacer(Modifier.height(16.dp))
+            content()
+        }
+        Spacer(Modifier.height(24.dp))
+        if (actions.size <= 2) {
+            Row(Modifier.align(Alignment.End), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                actions.forEach { MaterialAlertButton(it) }
+            }
+        } else {
+            Column(Modifier.align(Alignment.End), horizontalAlignment = Alignment.End) {
+                actions.forEach { MaterialAlertButton(it) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MaterialAlertButton(action: AlertAction) {
+    val c = Ios.colors
+    Text(
+        action.text,
+        style = MaterialTheme.typography.labelLarge,
+        color = if (action.role == AlertRole.Destructive) c.red else c.tint,
+        maxLines = 1,
+        modifier = Modifier
+            .clip(CircleShape)
+            .clickable(role = Role.Button, onClick = action.onClick)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+    )
 }
 
 @Composable
