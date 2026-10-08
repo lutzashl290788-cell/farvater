@@ -1,38 +1,38 @@
 {
-  "versionCode": 10015,
-  "versionName": "1.0.15",
+  "versionCode": 10016,
+  "versionName": "1.0.16",
   "published": "09.10.2026",
   "critical": false,
   "notes": [
-    "Выбранный узел больше не меняется сам: если он не отвечает, приложение об этом скажет",
-    "Трафик за сеанс и за сегодня на главном экране и в уведомлении",
-    "Плитка в шторке подключает выбранный узел"
+    "Быстрее запуск и проверка узлов",
+    "В режиме энергосбережения стекло iOS 26 выключается",
+    "Обновления проверяются раз в 15 минут"
   ],
   "assets": {
     "arm64-v8a": {
-      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.15/Farvater-1.0.15-arm64-v8a.apk",
-      "sha256": "b1145453bec415163f588e0f1d53bd1d7ab15e14483ab1e650b552216fe6df4c",
-      "size": 21319601
+      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.16/Farvater-1.0.16-arm64-v8a.apk",
+      "sha256": "916c49647f983968106559c308357c114e794928dc964334ef849b11863dce6e",
+      "size": 21320911
     },
     "armeabi-v7a": {
-      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.15/Farvater-1.0.15-armeabi-v7a.apk",
-      "sha256": "51240f3b2c504222e00a7da5b1140e1a5bfd4a866cfb610dcd832cc2a42e63da",
-      "size": 21829793
+      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.16/Farvater-1.0.16-armeabi-v7a.apk",
+      "sha256": "8f06eda46d91c6174d45ab806b139bcd72816f0df57ec8771df29eee4de22bcd",
+      "size": 21831107
     },
     "universal": {
-      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.15/Farvater-1.0.15-universal.apk",
-      "sha256": "1752597313c59fb044bdd5a686163fb778f05cadc667a4956ade16cb08bac5cf",
-      "size": 61431568
+      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.16/Farvater-1.0.16-universal.apk",
+      "sha256": "b4a82057582347cbeab18472b1205796e00b673226acc9942ed846a2725ea374",
+      "size": 61432878
     },
     "x86": {
-      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.15/Farvater-1.0.15-x86.apk",
-      "sha256": "28d67cb599591cf26479cee274d77025cbf1d8c0107548c8108b7dac1cf46f68",
-      "size": 22857811
+      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.16/Farvater-1.0.16-x86.apk",
+      "sha256": "4f8d8bd4b0187be51780e191a9d8a0f7f9abbe05381d7c276c2fdad775136c4f",
+      "size": 22859122
     },
     "x86_64": {
-      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.15/Farvater-1.0.15-x86_64.apk",
-      "sha256": "fc4a17bcf68c2e0e1d7039ee3fe1ce3c99ce06004a9ae754a37ec0fe46f33ea6",
-      "size": 22341381
+      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.16/Farvater-1.0.16-x86_64.apk",
+      "sha256": "0949f92a14ce91d173b1bb25133e30b1c8ae41e749b24cdce9f6c513b3b4d5a3",
+      "size": 22342690
     }
   }
 }
