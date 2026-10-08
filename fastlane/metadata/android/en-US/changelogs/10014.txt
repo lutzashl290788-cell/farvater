@@ -1,0 +1,3 @@
+- Two design styles: iOS 26 Liquid Glass and Material You (Settings → Appearance)
+- Theme choice: system, light or dark
+- iOS 26 style across the whole app: switches, segmented controls, dialogs and sheets
