@@ -1,0 +1,2 @@
+- New Liquid Glass design: live glass in the tab bar and headers
+- Compact connect button

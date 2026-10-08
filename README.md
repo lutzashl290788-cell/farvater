@@ -110,7 +110,7 @@
 
 **Интерфейс и обновления**
 
-- Интерфейс в стиле iOS: капсульная панель вкладок, анимации на пружинах, светлая и тёмная темы.
+- Интерфейс в стиле iOS 26 с Liquid Glass: панель вкладок и шапки из живого стекла, которое размывает и преломляет контент под собой (Android 12 и новее, линза по краям — Android 13 и новее). Анимации на пружинах, светлая и тёмная темы.
 - Уведомление о новой версии со списком изменений. Пока включён VPN, оно приходит в течение минуты после выхода.
 - Скачивание обновления внутри приложения со сверкой SHA-256.
 
@@ -489,6 +489,7 @@ Google Play удаляет такие приложения по требован
 - [Xray-core](https://github.com/XTLS/Xray-core) — Project X, MPL-2.0
 - [AndroidLibXrayLite](https://github.com/2dust/AndroidLibXrayLite) — 2dust, LGPL-3.0
 - [hev-socks5-tunnel](https://github.com/heiher/hev-socks5-tunnel) — hev, MIT
+- [AndroidLiquidGlass](https://github.com/Kyant0/AndroidLiquidGlass) — Kyant, Apache-2.0: подход к эффекту стекла (запись фона в слой, размытие, линза на AGSL), на основе которого написана своя реализация
 - Авторы публичных подписок из каталога: [zieng2](https://github.com/zieng2/wl), [igareck](https://github.com/igareck/vpn-configs-for-russia), [whoahaow](https://github.com/whoahaow/rjsxrd), [РКП](https://hub.mos.ru/rkp/sub-roskompozor), [ByeWhiteLists](https://byewhitelists.github.io/)
 
 Полный список библиотек и лицензий — в [legal/licenses.txt](legal/licenses.txt).
