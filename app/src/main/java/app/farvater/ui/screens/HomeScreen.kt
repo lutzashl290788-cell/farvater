@@ -32,6 +32,7 @@ import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Radar
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -161,7 +162,12 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxWidth(),
             ) { m ->
                 Column(Modifier.fillMaxWidth().padding(horizontal = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(headline(m), style = IosType.title2, color = statusColor(m), textAlign = TextAlign.Center)
+                    Text(
+                        headline(m),
+                        style = if (Ios.material) MaterialTheme.typography.headlineSmall else IosType.title2,
+                        color = statusColor(m),
+                        textAlign = TextAlign.Center,
+                    )
                     Spacer(Modifier.height(4.dp))
                     Text(
                         supporting(m, vpn, state),

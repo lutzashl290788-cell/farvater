@@ -15,10 +15,14 @@ import app.farvater.data.AppSettings
 import app.farvater.data.UiStyle
 import app.farvater.engine.TestMethod
 import app.farvater.engine.TestResult
+import app.farvater.ui.ios.AlertAction
+import app.farvater.ui.ios.AlertRole
+import app.farvater.ui.ios.IosAlert
 import app.farvater.ui.screens.HomeScreen
 import app.farvater.ui.screens.OnboardingDialog
 import app.farvater.ui.screens.ServersScreen
 import app.farvater.ui.screens.SettingsScreen
+import app.farvater.ui.screens.SourceSheet
 import app.farvater.ui.screens.SourcesScreen
 import app.farvater.ui.theme.FarvaterTheme
 import app.farvater.vpn.Traffic
@@ -55,6 +59,11 @@ class ScreenshotTest {
         OnboardingDialog(onChoice = {}, onOpenDocument = {})
     }
 
+    @Test fun alertDark() = shot("08_alert_dark", dark = true, screen = true) { Alert() }
+    @Test fun sheetLight() = shot("09_sheet_light", dark = false, screen = true) { Sheet() }
+    @Test fun materialAlertLight() = shot("18_material_alert_light", dark = false, screen = true, material = true) { Alert() }
+    @Test fun materialSheetDark() = shot("19_material_sheet_dark", dark = true, screen = true, material = true) { Sheet() }
+
     @Test fun materialHomeIdleLight() = shot("11_material_home_idle_light", dark = false, material = true) { Home(VpnState.Idle) }
     @Test fun materialHomeConnectedDark() = shot("12_material_home_connected_dark", dark = true, material = true) { Home(Fake.connected) }
     @Test fun materialServersLight() = shot("14_material_servers_light", dark = false, material = true) { Servers() }
@@ -62,6 +71,34 @@ class ScreenshotTest {
     @Test fun materialSourcesLight() = shot("15_material_sources_light", dark = false, material = true) { Sources() }
     @Test fun materialSettingsLight() = shot("16_material_settings_light", dark = false, material = true) { Settings() }
     @Test fun materialSettingsDark() = shot("16_material_settings_dark", dark = true, material = true) { Settings() }
+
+    @Composable
+    private fun Alert() {
+        Home(VpnState.Idle)
+        IosAlert(
+            title = "Добавить из ссылки?",
+            message = "https://sub.example.net/farvater",
+            onDismiss = {},
+            actions = listOf(
+                AlertAction("Отмена") {},
+                AlertAction("Добавить", AlertRole.Preferred) {},
+            ),
+        )
+    }
+
+    @Composable
+    private fun Sheet() {
+        Sources()
+        SourceSheet(
+            source = Fake.state.sources.first { !it.community },
+            status = "12 узлов, обновлено 3 ч назад",
+            onMode = {},
+            onInterval = {},
+            onRefresh = {},
+            onRemove = {},
+            onClose = {},
+        )
+    }
 
     @OptIn(ExperimentalRoborazziApi::class)
     private fun shot(name: String, dark: Boolean, screen: Boolean = false, material: Boolean = false, content: @Composable () -> Unit) {
