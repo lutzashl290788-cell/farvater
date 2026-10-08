@@ -10,27 +10,27 @@
   "assets": {
     "arm64-v8a": {
       "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.13/Farvater-1.0.13-arm64-v8a.apk",
-      "sha256": "14ac43dd111f5bbe0cdf017c263aa5b952f35b7f3b75d4d45e317578ea2c779d",
+      "sha256": "6aeb0c6783d0bd180730c0bff8564d2941f695c2844dc1d58e82d077fa47f1ca",
       "size": 21272879
     },
     "armeabi-v7a": {
       "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.13/Farvater-1.0.13-armeabi-v7a.apk",
-      "sha256": "265943d882e39f52117cb427ca45028bede17c164c35ee0b1cd48e3542e86614",
+      "sha256": "09da5e68e7285e900df9741c9a5bc0dcb0d41f93df61922642f3e44ba35856aa",
       "size": 21783081
     },
     "universal": {
       "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.13/Farvater-1.0.13-universal.apk",
-      "sha256": "684b6f25cd39c8f3a654914bbd8800f034a09383986902bcfd3c75438902f8f5",
+      "sha256": "8a73ac8a5201721e03ac71594fe3f6d68bf557f79dd47a6b3db3ce9f5e05dc6c",
       "size": 61384866
     },
     "x86": {
       "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.13/Farvater-1.0.13-x86.apk",
-      "sha256": "e98fdf8822cc9d14b7aab46604a0fc39351df2a1b122ac9dfdad493d167a3a68",
+      "sha256": "86ff4f28f19eadf956cd21c41ecd9a58b11073bbb615cd679dcc1b8fc4239fa8",
       "size": 22811099
     },
     "x86_64": {
       "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.13/Farvater-1.0.13-x86_64.apk",
-      "sha256": "a8efe5914e93e739d2ddc64640b8a016a19710ee1e3576a2cbce17ab7c6b3e27",
+      "sha256": "237440a33dbd52bd10a37276222be7881ff8178dd8700b0543cf968501db7289",
       "size": 22294670
     }
   }
