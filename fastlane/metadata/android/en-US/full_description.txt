@@ -3,8 +3,8 @@ Farvater connects your phone to your own server or to one from a subscription an
 <b>Connection</b>
 <ul>
 <li>One-tap connect with automatic selection of the fastest node.</li>
-<li>Automatic switch to another node when the current one stops responding.</li>
-<li>Speed, session time and transport security on the home screen.</li>
+<li>The selected node never changes by itself: if it stops responding, the app tells you.</li>
+<li>Speed, traffic per session and per day, session time and transport security on the home screen.</li>
 </ul>
 
 <b>Subscriptions</b>

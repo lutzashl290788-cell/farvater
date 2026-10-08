@@ -1,0 +1,3 @@
+- The selected node never changes by itself: if it stops responding, the app tells you
+- Traffic per session and per day on the home screen and in the notification
+- The quick settings tile connects the selected node
