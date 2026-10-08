@@ -214,7 +214,7 @@ private object Fake {
         ),
     )
     val connected = VpnState.Connected(nodes[0], System.currentTimeMillis() - 754_000)
-    val traffic = Traffic(upBps = 18_400, downBps = 1_240_000, upTotal = 4_200_000, downTotal = 96_000_000)
+    val traffic = Traffic(upBps = 18_400, downBps = 1_240_000, upTotal = 4_200_000, downTotal = 96_000_000, today = 1_380_000_000)
     val history = listOf(120, 340, 900, 1500, 1200, 800, 1900, 2400, 2100, 1300, 1600, 2200, 2600, 1800, 1240)
         .map { it * 1000L }
 }

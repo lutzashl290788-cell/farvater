@@ -19,15 +19,18 @@ import app.farvater.MainActivity
 import app.farvater.R
 import app.farvater.core.model.ProxyNode
 import app.farvater.core.xray.XrayConfigBuilder
+import app.farvater.data.DayTraffic
 import app.farvater.data.UpdateWorker
 import app.farvater.engine.TunBridge
 import app.farvater.engine.XrayEngine
+import app.farvater.ui.formatBytes
 import app.farvater.ui.formatSpeed
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -37,6 +40,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.net.InetSocketAddress
 import java.net.Proxy
+import java.time.LocalDate
 import java.util.concurrent.TimeUnit
 
 class FarvaterVpnService : VpnService() {
@@ -67,6 +71,7 @@ class FarvaterVpnService : VpnService() {
     private var monitor: Job? = null
     private var lastNotificationText: String? = null
     private var lastUpdateAttempt = 0L
+    @Volatile private var dayTraffic: DayTraffic? = null
 
     private val screenOn = MutableStateFlow(true)
     private val screenReceiver = object : BroadcastReceiver() {
@@ -156,14 +161,19 @@ class FarvaterVpnService : VpnService() {
     }
 
     private suspend fun monitorLoop(node: ProxyNode) {
+        var base = TunBridge.stats()?.takeIf { it.size >= 4 }?.let { longArrayOf(it[1], it[3]) }
         var lastTx = -1L
         var lastRx = -1L
+        var counted = 0L
+        var day = App.prefs.dayTraffic
+        dayTraffic = day
         var tick = 0
         var failures = 0
         val history = ArrayDeque<Long>()
-        while (scope.isActive) {
+        while (currentCoroutineContext().isActive) {
             if (!screenOn.value) {
                 VpnBus.traffic.value = VpnBus.traffic.value.copy(upBps = 0, downBps = 0)
+                App.prefs.dayTraffic = day
                 screenOn.first { it }
                 lastTx = -1L
                 lastRx = -1L
@@ -173,24 +183,46 @@ class FarvaterVpnService : VpnService() {
             delay(1000)
             tick++
             TunBridge.stats()?.takeIf { it.size >= 4 }?.let { s ->
+                val b = base ?: longArrayOf(s[1], s[3]).also { base = it }
+                val upTotal = (s[1] - b[0]).coerceAtLeast(0)
+                val downTotal = (s[3] - b[1]).coerceAtLeast(0)
+                val today = LocalDate.now().toEpochDay()
+                if (day.day != today) day = DayTraffic(today, 0)
+                day = day.copy(bytes = day.bytes + (upTotal + downTotal - counted).coerceAtLeast(0))
+                counted = upTotal + downTotal
+                dayTraffic = day
+                var up = 0L
+                var down = 0L
                 if (lastTx >= 0) {
-                    val up = (s[1] - lastTx).coerceAtLeast(0)
-                    val down = (s[3] - lastRx).coerceAtLeast(0)
-                    VpnBus.traffic.value = Traffic(up, down, s[1], s[3])
+                    up = (s[1] - lastTx).coerceAtLeast(0)
+                    down = (s[3] - lastRx).coerceAtLeast(0)
                     history.addLast(up + down)
                     if (history.size > 60) history.removeFirst()
                     VpnBus.speedHistory.value = history.toList()
                 }
+                VpnBus.traffic.value = Traffic(up, down, upTotal, downTotal, day.bytes)
                 lastTx = s[1]
                 lastRx = s[3]
             }
+            if (tick % 30 == 0) App.prefs.dayTraffic = day
             if (tick % 5 == 0) {
                 val t = VpnBus.traffic.value
-                val text = if (failures >= VpnBus.STALL_CHECKS) "Узел не отвечает" else "↓ ${formatSpeed(t.downBps)}   ↑ ${formatSpeed(t.upBps)}"
-                updateNotification(node.name, text)
+                if (failures >= VpnBus.STALL_CHECKS) {
+                    updateNotification(node.name, "Узел не отвечает")
+                } else {
+                    val speed = "↓ ${formatSpeed(t.downBps)}   ↑ ${formatSpeed(t.upBps)}"
+                    updateNotification(
+                        node.name,
+                        speed,
+                        sub = "сегодня ${formatBytes(t.today)}",
+                        details = "$speed\nЗа сеанс ${formatBytes(t.upTotal + t.downTotal)}, за сегодня ${formatBytes(t.today)}",
+                    )
+                }
             }
             if (tick % PROBE_EVERY == 0) {
-                failures = if (probe()) 0 else failures + 1
+                val ok = probe()
+                if (!currentCoroutineContext().isActive) return
+                failures = if (ok) 0 else failures + 1
                 VpnBus.failedChecks.value = failures
                 maybeCheckUpdates()
             }
@@ -212,6 +244,8 @@ class FarvaterVpnService : VpnService() {
     private fun teardown() {
         monitor?.cancel()
         monitor = null
+        dayTraffic?.let { App.prefs.dayTraffic = it }
+        dayTraffic = null
         TunBridge.stop()
         XrayEngine.stop()
         runCatching { tun?.close() }
@@ -245,7 +279,7 @@ class FarvaterVpnService : VpnService() {
         super.onDestroy()
     }
 
-    private fun notification(title: String, text: String): Notification {
+    private fun notification(title: String, text: String, sub: String? = null, details: String? = null): Notification {
         val open = PendingIntent.getActivity(
             this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE,
         )
@@ -260,14 +294,18 @@ class FarvaterVpnService : VpnService() {
             .setOnlyAlertOnce(true)
             .setContentIntent(open)
             .addAction(Notification.Action.Builder(null as Icon?, "Отключить", stop).build())
+            .apply {
+                if (sub != null) setSubText(sub)
+                if (details != null) setStyle(Notification.BigTextStyle().bigText(details))
+            }
             .build()
     }
 
-    private fun updateNotification(title: String, text: String) {
-        val key = "$title\n$text"
+    private fun updateNotification(title: String, text: String, sub: String? = null, details: String? = null) {
+        val key = "$title\n$text\n$sub\n$details"
         if (key == lastNotificationText) return
         lastNotificationText = key
-        getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, notification(title, text))
+        getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, notification(title, text, sub, details))
     }
 
     private fun startForegroundCompat(n: Notification) {

@@ -15,6 +15,7 @@ data class Traffic(
     val downBps: Long = 0,
     val upTotal: Long = 0,
     val downTotal: Long = 0,
+    val today: Long = 0,
 )
 
 object VpnBus {

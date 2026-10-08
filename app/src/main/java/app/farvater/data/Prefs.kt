@@ -43,6 +43,9 @@ data class SourceConfig(val mode: SourceMode? = null, val intervalHours: Int? = 
 @Serializable
 data class UserSource(val id: String, val url: String, val title: String)
 
+@Serializable
+data class DayTraffic(val day: Long = 0, val bytes: Long = 0)
+
 class Prefs(context: Context) {
     private val sp = context.getSharedPreferences("farvater", Context.MODE_PRIVATE)
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
@@ -125,6 +128,10 @@ class Prefs(context: Context) {
         if (selectedNodeId != node.id) selectedNodeId = node.id
         lastNode = node
     }
+
+    var dayTraffic: DayTraffic
+        get() = read<DayTraffic>("day_traffic") ?: DayTraffic()
+        set(value) = write("day_traffic", value)
 
     fun clearSelection() {
         selectedNodeId = null

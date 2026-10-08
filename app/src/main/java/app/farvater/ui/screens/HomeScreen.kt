@@ -65,6 +65,7 @@ import app.farvater.ui.components.DelayLabel
 import app.farvater.ui.components.NodeAvatar
 import app.farvater.ui.components.Sparkline
 import app.farvater.ui.components.nodeSummary
+import app.farvater.ui.formatBytes
 import app.farvater.ui.formatDuration
 import app.farvater.ui.formatSpeed
 import app.farvater.ui.ios.IosButton
@@ -316,6 +317,10 @@ private fun SessionSection(vpn: VpnState.Connected, traffic: Traffic, history: L
         Sparkline(history, c.green, Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 16.dp, vertical = 8.dp))
         IosDivider()
         IosRow(title = "В сети", value = formatDuration(now - vpn.since))
+        IosDivider()
+        IosRow(title = "За сеанс", value = formatBytes(traffic.upTotal + traffic.downTotal))
+        IosDivider()
+        IosRow(title = "За сегодня", value = formatBytes(traffic.today))
         IosDivider()
         IosRow(
             title = "Защита",
