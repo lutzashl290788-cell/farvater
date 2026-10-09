@@ -1,0 +1,3 @@
+- New public subscription for regular blocking, so RKP is no longer the only one outside whitelists
+- MTU choice in the connection settings
+- Clearer which subscriptions work under whitelists and under regular blocking
