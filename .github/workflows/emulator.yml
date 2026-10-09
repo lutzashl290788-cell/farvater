@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        apk: [x86_64, universal]
+        apk: [arm64]
     steps:
       - uses: actions/checkout@v4
 
@@ -37,7 +37,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release download v1.0.15 -R "$GITHUB_REPOSITORY" -p "Farvater-1.0.15-x86_64.apk" -D apk
+          gh release download v1.0.15 -R "$GITHUB_REPOSITORY" -p "Farvater-1.0.15-x86_64.apk" -p "Farvater-1.0.15-arm64-v8a.apk" -D apk
           gh release download v1.0.16 -R "$GITHUB_REPOSITORY" -p "Farvater-1.0.16-x86_64.apk" -p "Farvater-1.0.16-universal.apk" -p "Farvater-1.0.16-arm64-v8a.apk" -D apk
           ls -la apk
 
@@ -133,6 +133,22 @@ jobs:
           calm
           echo "# $VARIANT: Android $(adb shell getprop ro.build.version.release | tr -d '\r'), $(adb shell wm size | tr -d '\r')" > "$SUM"
           adb logcat -c
+
+          if [ "$VARIANT" = arm64 ]; then
+            for v in 1.0.15 1.0.16; do
+              adb logcat -c
+              install apk/Farvater-$v-arm64-v8a.apk || continue
+              say "$v arm64-v8a поставился, ABI: $(adb shell dumpsys package $PKG | grep -m1 primaryCpuAbi | tr -d '\r' | xargs)"
+              adb shell am start -W -n $ACT | tr -d '\r' | grep -E 'Status|TotalTime' | tr '\n' ' ' > "$OUT/start.txt"
+              sleep 15
+              shot arm64-$v
+              say "$v: запуск $(cat "$OUT/start.txt"), через 15 с процесс $(adb shell pidof $PKG >/dev/null && echo жив || echo не запущен)"
+              adb logcat -d > "$OUT/logcat-$v.txt"
+              grep -E "Fatal signal|Abort message|ndk_translation|libgojni|UnsatisfiedLink|Process $PKG.*(died|has died)|>>> $PKG" "$OUT/logcat-$v.txt" | head -12 | sed 's/^/    /' >> "$SUM"
+            done
+            cat "$SUM"
+            exit 0
+          fi
 
           if [ "$VARIANT" = x86_64 ]; then
             for round in 1 2 3; do
