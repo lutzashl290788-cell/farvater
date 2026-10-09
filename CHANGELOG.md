@@ -4,6 +4,13 @@
 
 ## [Не выпущено]
 
+## [1.0.17] — 2026-10-09
+
+### Добавлено
+
+- Третий стиль оформления «#РосКомПозор»: Material 3 в цветах #РКП, голубой акцент на тёмно-сером фоне, тема всегда тёмная. На кнопке подключения и в выборе стиля — логотип #РКП.
+- У стилей на странице «Оформление» появились значки.
+
 ## [1.0.16] — 2026-10-09
 
 ### Изменено
@@ -204,7 +211,8 @@
 - Интерфейс в стиле iOS, светлая и тёмная темы.
 - Импорт подписки по ссылке `farvater://import`.
 
-[Не выпущено]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.16...HEAD
+[Не выпущено]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.17...HEAD
+[1.0.17]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.16...v1.0.17
 [1.0.16]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.15...v1.0.16
 [1.0.15]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.14...v1.0.15
 [1.0.14]: https://github.com/lutzashl290788-cell/farvater/compare/v1.0.13...v1.0.14
