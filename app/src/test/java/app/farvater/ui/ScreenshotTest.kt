@@ -78,6 +78,20 @@ class ScreenshotTest {
     @Test fun rkpHomeConnected() = shot("22_rkp_home_connected", dark = true, rkp = true) { Home(Fake.connected) }
     @Test fun rkpServers() = shot("23_rkp_servers", dark = true, rkp = true) { Servers() }
     @Test fun rkpSources() = shot("24_rkp_sources", dark = true, rkp = true) { Sources() }
+    @Test fun connectionDark() = shot(
+        "26_connection_dark", dark = true,
+        act = { rule.onNodeWithText("Подключение").performClick() },
+    ) { Settings() }
+    @Test fun sourcesBlackDark() = shot("27_sources_black_dark", dark = true) {
+        Sources(
+            Fake.state.copy(
+                netMode = NetMode.BLACK,
+                detectedMode = NetMode.BLACK,
+                sources = Fake.state.sources.map { it.copy(inMode = it.mode.fits(NetMode.BLACK)) },
+            ),
+        )
+    }
+
     @Test fun rkpAppearance() = shot(
         "25_rkp_appearance", dark = true, rkp = true,
         act = { rule.onNodeWithText("Оформление").performClick() },
@@ -164,10 +178,10 @@ class ScreenshotTest {
     }
 
     @Composable
-    private fun Sources() = FarvaterFrame(tab = Tab.Sources, onTab = {}) { p ->
+    private fun Sources(state: UiState = Fake.state) = FarvaterFrame(tab = Tab.Sources, onTab = {}) { p ->
         androidx.compose.foundation.layout.Box(Modifier.padding(p)) {
             SourcesScreen(
-                state = Fake.state, onRefresh = {}, onToggle = { _, _ -> }, onAddSubscription = {},
+                state = state, onRefresh = {}, onToggle = { _, _ -> }, onAddSubscription = {},
                 onPaste = {}, onRemoveUserSource = {}, onEnableCommunity = {},
             )
         }
@@ -218,6 +232,7 @@ private object Fake {
         source("zieng2-universal", "WL Universal", "zieng2", "не указана", 85),
         source("igareck-mobile", "Белые списки, мобильные", "igareck", "GPL-3.0", 20),
         source("igareck-cidr", "Белые списки, проверенные подсети", "igareck", "GPL-3.0", 0, "в подписке сейчас нет серверов"),
+        source("igareck-black-mobile", "Чёрные списки, мобильные", "igareck", "GPL-3.0", 140, mode = SourceMode.BLACK),
         source("rjsxrd-bypass", "rjsxrd", "whoahaow", "MIT", 475),
         source("rkp-wl", "РКП: белые списки", "RKP", "не указана", 64),
         source("rkp-bl", "РКП: чёрные списки", "RKP", "не указана", 112, mode = SourceMode.BLACK),

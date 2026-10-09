@@ -50,7 +50,6 @@ class FarvaterVpnService : VpnService() {
         const val EXTRA_RESTART = "app.farvater.extra.RESTART"
         const val CHANNEL = "vpn"
         private const val NOTIFICATION_ID = 7
-        private const val MTU = 8500
         private const val PROBE_EVERY = 60
         private const val UPDATE_GAP_MS = 15 * 60 * 1000L
 
@@ -142,7 +141,7 @@ class FarvaterVpnService : VpnService() {
 
         val builder = Builder()
             .setSession(node.name)
-            .setMtu(MTU)
+            .setMtu(settings.mtu)
             .addAddress("10.10.14.1", 30)
             .addRoute("0.0.0.0", 0)
             .addDnsServer("1.1.1.1")
@@ -153,7 +152,7 @@ class FarvaterVpnService : VpnService() {
         val fd = builder.establish() ?: return abort("Нет разрешения на VPN")
         tun = fd
         runCatching { previous?.close() }
-        TunBridge.start(this, fd.fd, MTU).onFailure { return fail("TUN не запустился: ${it.message}", node) }
+        TunBridge.start(this, fd.fd, settings.mtu).onFailure { return fail("TUN не запустился: ${it.message}", node) }
 
         VpnBus.state.value = VpnState.Connected(node, System.currentTimeMillis())
         updateNotification(node.name, "Подключено")

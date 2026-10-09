@@ -62,6 +62,21 @@ object BuiltInCatalog {
             mode = SourceMode.WHITE,
         ),
         CatalogSource(
+            id = "igareck-black-mobile",
+            title = "Чёрные списки, мобильные",
+            author = "igareck",
+            homepage = "https://github.com/igareck/vpn-configs-for-russia",
+            license = "GPL-3.0",
+            description = "150 лучших конфигов для обычных блокировок, лёгкая подписка для телефона.",
+            mirrors = listOf(
+                "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS_mobile.txt",
+                "https://gitlab.com/igareck/vpn-configs-for-russia/-/raw/main/BLACK_VLESS_RUS_mobile.txt",
+                "https://codeberg.org/igareck/vpn-configs-for-russia/raw/branch/main/BLACK_VLESS_RUS_mobile.txt",
+                "https://raw.githack.com/igareck/vpn-configs-for-russia/main/BLACK_VLESS_RUS_mobile.txt",
+            ),
+            mode = SourceMode.BLACK,
+        ),
+        CatalogSource(
             id = "rjsxrd-bypass",
             title = "rjsxrd",
             author = "whoahaow",

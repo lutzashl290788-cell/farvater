@@ -592,7 +592,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val vpn = VpnBus.state.value
         val tunnelChanged = old.bypassApps != new.bypassApps ||
             old.directRuServices != new.directRuServices ||
-            old.encryptedDns != new.encryptedDns
+            old.encryptedDns != new.encryptedDns ||
+            old.mtu != new.mtu
         if (tunnelChanged && vpn is VpnState.Connected) reconnectSoon()
     }
 

@@ -31,6 +31,7 @@ data class AppSettings(
     val sendHwid: Boolean = true,
     val autoUpdates: Boolean = true,
     val bypassApps: Set<String> = emptySet(),
+    val mtu: Int = 8500,
     val netMode: NetModeChoice = NetModeChoice.AUTO,
     val uiStyle: UiStyle = UiStyle.IOS,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
