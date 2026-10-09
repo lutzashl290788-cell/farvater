@@ -38,6 +38,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountBalance
+import androidx.compose.material.icons.rounded.Android
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.Code
@@ -56,6 +57,7 @@ import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.PhoneAndroid
+import androidx.compose.material.icons.rounded.PhoneIphone
 import androidx.compose.material.icons.rounded.Public
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Shield
@@ -80,6 +82,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -114,8 +117,10 @@ import app.farvater.ui.ios.IosSegmented
 import app.farvater.ui.ios.IosSpinner
 import app.farvater.ui.ios.IosSwitch
 import app.farvater.ui.ios.SheetCorner
+import app.farvater.R
 import app.farvater.ui.theme.Ios
 import app.farvater.ui.theme.IosType
+import app.farvater.ui.theme.RkpBlue
 import kotlinx.coroutines.launch
 
 private val ConcurrencyOptions = listOf(8 to "Бережно", 16 to "Обычно", 32 to "Быстро")
@@ -240,7 +245,11 @@ private fun SettingsRoot(
                     title = "Оформление",
                     icon = Icons.Rounded.Palette,
                     iconTint = c.pink,
-                    value = if (settings.uiStyle == UiStyle.MATERIAL) "Material You" else "iOS 26",
+                    value = when (settings.uiStyle) {
+                        UiStyle.IOS -> "iOS 26"
+                        UiStyle.MATERIAL -> "Material You"
+                        UiStyle.ROSKOMPOZOR -> "#РосКомПозор"
+                    },
                     chevron = true,
                     onClick = { onOpen(SettingsPage.Appearance) },
                 )
@@ -345,6 +354,8 @@ private fun SettingsRoot(
 
 @Composable
 private fun AppearancePage(settings: AppSettings, onChange: ((AppSettings) -> AppSettings) -> Unit) {
+    val c = Ios.colors
+    val divider = Divider.dp
     IosSection(
         header = "Стиль",
         footer = "Меняет вид всего приложения: панели, кнопки, списки, переключатели и окна.",
@@ -353,25 +364,40 @@ private fun AppearancePage(settings: AppSettings, onChange: ((AppSettings) -> Ap
             title = "iOS 26",
             subtitle = "Liquid Glass: стеклянные панели с размытием и преломлением",
             selected = settings.uiStyle == UiStyle.IOS,
+            icon = Icons.Rounded.PhoneIphone,
+            iconTint = c.blue,
             onClick = { onChange { it.copy(uiStyle = UiStyle.IOS) } },
         )
-        IosDivider()
+        IosDivider(start = divider)
         IosChoiceRow(
             title = "Material You",
             subtitle = "Стиль Android: Material 3 и цвета под обои телефона",
             selected = settings.uiStyle == UiStyle.MATERIAL,
+            icon = Icons.Rounded.Android,
+            iconTint = c.green,
             onClick = { onChange { it.copy(uiStyle = UiStyle.MATERIAL) } },
+        )
+        IosDivider(start = divider)
+        IosChoiceRow(
+            title = "#РосКомПозор",
+            subtitle = "Material 3 в цветах #РКП: голубой на тёмно-сером, всегда тёмная тема",
+            selected = settings.uiStyle == UiStyle.ROSKOMPOZOR,
+            icon = ImageVector.vectorResource(R.drawable.ic_rkp),
+            iconTint = RkpBlue,
+            onClick = { onChange { it.copy(uiStyle = UiStyle.ROSKOMPOZOR) } },
         )
     }
 
-    IosSection(header = "Тема") {
-        ThemeChoices.forEachIndexed { i, (mode, title) ->
-            if (i > 0) IosDivider()
-            IosChoiceRow(
-                title = title,
-                selected = settings.themeMode == mode,
-                onClick = { onChange { it.copy(themeMode = mode) } },
-            )
+    if (settings.uiStyle != UiStyle.ROSKOMPOZOR) {
+        IosSection(header = "Тема") {
+            ThemeChoices.forEachIndexed { i, (mode, title) ->
+                if (i > 0) IosDivider()
+                IosChoiceRow(
+                    title = title,
+                    selected = settings.themeMode == mode,
+                    onClick = { onChange { it.copy(themeMode = mode) } },
+                )
+            }
         }
     }
 
