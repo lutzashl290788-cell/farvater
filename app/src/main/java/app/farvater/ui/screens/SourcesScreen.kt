@@ -87,8 +87,8 @@ fun SourcesScreen(
             contentPadding = PaddingValues(bottom = 20.dp + LocalBottomInset.current),
         ) {
             item(key = "title") {
-                val total = state.sources.filter { it.enabled }.sumOf { it.nodeCount }
-                IosLargeTitle("Источники", subtitle = "Узлов из включённых: $total") {
+                val total = state.sources.filter { it.enabled && it.inMode }.sumOf { it.nodeCount }
+                IosLargeTitle("Источники", subtitle = "Узлов в работе: $total") {
                     if (state.refreshing) {
                         Box(Modifier.size(36.dp), contentAlignment = Alignment.Center) { IosSpinner() }
                     } else {
@@ -256,18 +256,21 @@ private fun CommunityRow(source: SourceUi, onToggle: (String, Boolean) -> Unit, 
 
 private fun modeFooter(choice: NetModeChoice, detected: NetMode?, detecting: Boolean): String = when (choice) {
     NetModeChoice.WHITE -> "Работают подписки с пометкой БС."
-    NetModeChoice.BLACK -> "Работают подписки с пометкой ЧС."
+    NetModeChoice.BLACK -> "Работают подписки с пометкой ЧС. $SpareWhite"
     NetModeChoice.AUTO -> when {
         detecting && detected == null -> "Определяю, какие сейчас ограничения…"
         detected == NetMode.WHITE -> "Сейчас белые списки: работают подписки с пометкой БС."
-        detected == NetMode.BLACK -> "Сейчас обычные блокировки: работают подписки с пометкой ЧС."
+        detected == NetMode.BLACK -> "Сейчас обычные блокировки: работают подписки с пометкой ЧС. $SpareWhite"
         else -> "Режим пока не определён, работают все подписки."
     }
 }
 
+private const val SpareWhite = "Подписки БС не трогаем: их серверы нужны тем, у кого белые списки."
+
 private fun statusText(source: SourceUi): String = "${modeShort(source.mode)} · обновление ${intervalLabel(source)}\n" + when {
     source.loading -> "Обновляю…"
     !source.enabled -> "Выключена"
+    !source.inMode -> "Сейчас не используется: подписка для ${if (source.mode == SourceMode.BLACK) "обычных блокировок" else "белых списков"}"
     source.error != null && source.nodeCount > 0 -> "Из кэша: ${source.nodeCount} узлов, ${source.error}"
     source.error != null -> source.error.replaceFirstChar { it.uppercase() }
     source.updatedAt > 0 -> "${source.nodeCount} узлов, ${formatAgo(source.updatedAt).removePrefix("обновлён ")}"

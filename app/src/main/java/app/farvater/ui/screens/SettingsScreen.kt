@@ -50,7 +50,6 @@ import androidx.compose.material.icons.rounded.GppGood
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Hub
 import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Palette
@@ -415,6 +414,8 @@ private fun AppearancePage(settings: AppSettings, onChange: ((AppSettings) -> Ap
     }
 }
 
+private val MtuChoices = listOf(8500, 1500, 1480, 1400, 1280)
+
 private val ThemeChoices = listOf(
     ThemeMode.SYSTEM to "Как в системе",
     ThemeMode.LIGHT to "Светлая",
@@ -444,6 +445,19 @@ private fun ConnectionPage(settings: AppSettings, onChange: ((AppSettings) -> Ap
             onClick = onApps,
         )
     }
+    IosSection(
+        header = "MTU",
+        footer = "Самый большой пакет в туннеле. Понизьте, если в играх, звонках или отдельных приложениях что-то не работает.",
+    ) {
+        MtuChoices.forEachIndexed { i, mtu ->
+            if (i > 0) IosDivider()
+            IosChoiceRow(
+                title = if (i == 0) "$mtu, по умолчанию" else mtu.toString(),
+                selected = settings.mtu == mtu,
+                onClick = { onChange { it.copy(mtu = mtu) } },
+            )
+        }
+    }
 }
 
 @Composable
@@ -452,7 +466,8 @@ private fun SecurityPage(settings: AppSettings, onChange: ((AppSettings) -> AppS
     val divider = Divider.dp
     IosSection(
         footer = "Владелец сервера видит, на какие сайты вы заходите. Содержимое защищает HTTPS: " +
-            "не вводите пароли на сайтах без замочка и через публичные узлы.",
+            "не вводите пароли на сайтах без замочка и через публичные узлы. " +
+            "Внутренний прокси Фарватера всегда под паролем: другие приложения на телефоне не смогут пользоваться туннелем.",
     ) {
         IosRow(
             title = "Только защищённые узлы",
@@ -469,14 +484,6 @@ private fun SecurityPage(settings: AppSettings, onChange: ((AppSettings) -> AppS
             icon = Icons.Rounded.Dns,
             iconTint = c.blue,
             trailing = { IosSwitch(settings.encryptedDns, { v -> onChange { it.copy(encryptedDns = v) } }) },
-        )
-        IosDivider(start = divider)
-        IosRow(
-            title = "Прокси под паролем",
-            subtitle = "Другие приложения на телефоне не смогут пользоваться туннелем",
-            icon = Icons.Rounded.Key,
-            iconTint = c.tint,
-            value = "всегда",
         )
     }
 }

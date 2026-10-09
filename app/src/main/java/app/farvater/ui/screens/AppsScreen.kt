@@ -58,7 +58,7 @@ fun BypassAppsSheet(selected: Set<String>, onChange: (Set<String>) -> Unit, onCl
     }
     val icons = remember { HashMap<String, ImageBitmap?>() }
 
-    IosSheet(title = "Мимо VPN", onClose = onClose) {
+    IosSheet(title = "Приложения мимо VPN", onClose = onClose) {
         IosSearchField(
             value = query,
             onValueChange = { query = it },
