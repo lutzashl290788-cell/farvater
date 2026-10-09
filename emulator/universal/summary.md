@@ -1,0 +1,11 @@
+# universal: Android 14, Physical size: 1080x2400
+- ABI после установки: primaryCpuAbi=x86_64
+- VPN поднялся: no (ждал 360 с)
+- VPN в системе: ni{VPN CONNECTED extra: } IS_VALIDATED 
+- Прокрутка узлов, glass: Total frames rendered: 93;Janky frames: 91 (97.85%);50th percentile: 133ms;90th percentile: 200ms;99th percentile: 400ms;
+- Энергосбережение включено: 1
+- Прокрутка узлов, powersave: Total frames rendered: 112;Janky frames: 105 (93.75%);50th percentile: 85ms;90th percentile: 133ms;99th percentile: 200ms;
+- VPN после отключения: выключен
+- Падения Фарватера: 0; ANR Фарватера: 0
+- arm64-v8a поставился, ABI: primaryCpuAbi=arm64-v8a
+- arm64-v8a: процесс не запущен, падений 0
