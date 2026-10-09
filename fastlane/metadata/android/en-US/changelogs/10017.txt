@@ -1,0 +1,2 @@
+- New #RosKomPozor style: Material 3 in #RKP colors with the #RKP logo on the connect button
+- Icons next to the styles on the Appearance page

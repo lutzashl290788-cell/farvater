@@ -104,8 +104,8 @@
       О новой версии придёт уведомление. Перед установкой APK сверяется по SHA-256 и подписи.
     </td>
     <td valign="top">
-      <b>🎨 Два стиля</b><br><br>
-      iOS 26 с живым стеклом Liquid Glass или Material You в цветах ваших обоев.
+      <b>🎨 Три стиля</b><br><br>
+      iOS 26 с живым стеклом Liquid Glass, Material You в цветах ваших обоев или #РосКомПозор в цветах #РКП.
     </td>
   </tr>
 </table>
@@ -153,6 +153,7 @@
 
 - Стиль iOS 26 с Liquid Glass: панель вкладок и шапки из живого стекла, которое размывает и преломляет всё под собой (Android 12 и новее, линза по краям с Android 13), переключатели и сегменты в форме капсул, окна с размытием фона. В режиме энергосбережения стекло сменяется сплошной подложкой.
 - Стиль Material You: навигация, списки и переключатели Material 3, цвета под обои телефона на Android 12 и новее.
+- Стиль #РосКомПозор: Material 3 в цветах #РКП, голубой акцент на тёмно-сером фоне, всегда тёмная тема и логотип #РКП на кнопке подключения.
 - Тема как в системе, всегда светлая или всегда тёмная.
 - Уведомление о новой версии со списком изменений и скачивание обновления внутри приложения.
 
@@ -193,6 +194,19 @@
     <td align="center" width="25%"><img src="docs/screens/material_home_dark.png" width="180" alt="Подключение в стиле Material You"><br><sub>Подключение</sub></td>
     <td align="center" width="25%"><img src="docs/screens/material_servers_light.png" width="180" alt="Список узлов в стиле Material You"><br><sub>Список узлов</sub></td>
     <td align="center" width="25%"><img src="docs/screens/material_sources_light.png" width="180" alt="Подписки в стиле Material You"><br><sub>Подписки</sub></td>
+  </tr>
+</table>
+</details>
+
+<details>
+<summary><b>#РосКомПозор</b></summary>
+<br>
+<table>
+  <tr>
+    <td align="center" width="25%"><img src="docs/screens/rkp_home.png" width="180" alt="Главный экран в стиле #РосКомПозор"><br><sub>Главный экран</sub></td>
+    <td align="center" width="25%"><img src="docs/screens/rkp_connected.png" width="180" alt="Подключение в стиле #РосКомПозор"><br><sub>Подключение</sub></td>
+    <td align="center" width="25%"><img src="docs/screens/rkp_servers.png" width="180" alt="Список узлов в стиле #РосКомПозор"><br><sub>Список узлов</sub></td>
+    <td align="center" width="25%"><img src="docs/screens/rkp_appearance.png" width="180" alt="Выбор стиля оформления"><br><sub>Выбор стиля</sub></td>
   </tr>
 </table>
 </details>
@@ -346,8 +360,8 @@ farvater://import?url=https%3A%2F%2Fexample.com%2Fsub%2Ftoken
 
 | Раздел | Параметр | По умолчанию | Что делает |
 | :-- | :-- | :-- | :-- |
-| Оформление | Стиль | iOS 26 | Вид всего приложения: iOS 26 с Liquid Glass или Material You. |
-| Оформление | Тема | как в системе | Светлая, тёмная или по настройке телефона. |
+| Оформление | Стиль | iOS 26 | Вид всего приложения: iOS 26 с Liquid Glass, Material You или #РосКомПозор. |
+| Оформление | Тема | как в системе | Светлая, тёмная или по настройке телефона. В стиле #РосКомПозор тема всегда тёмная. |
 | Оформление | Цвета обоев | вкл. | Только для Material You на Android 12 и новее: цвета интерфейса подбираются под обои. |
 | Подключение | Банки и госсервисы | вкл. | Сайты российских сервисов и банков открываются напрямую, мимо VPN. |
 | Подключение | Приложения мимо VPN | нет | Отмеченные приложения ходят в интернет напрямую. Изменения применяются сразу. |
@@ -577,6 +591,8 @@ Workflow [release.yml](.github/workflows/release.yml) соберёт и подп
 AndroidLiquidGlass подсказал подход к эффекту стекла: запись фона в слой, размытие и линзу на AGSL. На его основе написана своя реализация.
 
 Спасибо авторам публичных подписок из каталога: [zieng2](https://github.com/zieng2/wl), [igareck](https://github.com/igareck/vpn-configs-for-russia), [whoahaow](https://github.com/whoahaow/rjsxrd), [РКП](https://hub.mos.ru/rkp/sub-roskompozor) и [ByeWhiteLists](https://byewhitelists.github.io/).
+
+Логотип #РКП в стиле #РосКомПозор используется с разрешения [РКП](https://hub.mos.ru/rkp/sub-roskompozor).
 
 Полный список библиотек и лицензий лежит в [legal/licenses.txt](legal/licenses.txt).
 
