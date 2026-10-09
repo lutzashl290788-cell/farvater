@@ -255,22 +255,25 @@ private fun CommunityRow(source: SourceUi, onToggle: (String, Boolean) -> Unit, 
 }
 
 private fun modeFooter(choice: NetModeChoice, detected: NetMode?, detecting: Boolean): String = when (choice) {
-    NetModeChoice.WHITE -> "Работают подписки с пометкой БС."
-    NetModeChoice.BLACK -> "Работают подписки с пометкой ЧС. $SpareWhite"
+    NetModeChoice.WHITE -> WhiteInfo.replaceFirstChar { it.uppercase() }
+    NetModeChoice.BLACK -> BlackInfo.replaceFirstChar { it.uppercase() }
     NetModeChoice.AUTO -> when {
         detecting && detected == null -> "Определяю, какие сейчас ограничения…"
-        detected == NetMode.WHITE -> "Сейчас белые списки: работают подписки с пометкой БС."
-        detected == NetMode.BLACK -> "Сейчас обычные блокировки: работают подписки с пометкой ЧС. $SpareWhite"
+        detected == NetMode.WHITE -> "Сейчас $WhiteInfo"
+        detected == NetMode.BLACK -> "Сейчас $BlackInfo"
         else -> "Режим пока не определён, работают все подписки."
     }
 }
 
-private const val SpareWhite = "Подписки БС не трогаем: их серверы нужны тем, у кого белые списки."
+private const val WhiteInfo = "белые списки: мобильный интернет ограничен, открываются только разрешённые сайты, " +
+    "обычные серверы недоступны. Работают подписки БС."
+private const val BlackInfo = "обычные блокировки: закрыты отдельные сайты, хватает обычных серверов. " +
+    "Работают подписки ЧС, а БС включатся только при белых списках, чтобы не перегружать их серверы."
 
 private fun statusText(source: SourceUi): String = "${modeShort(source.mode)} · обновление ${intervalLabel(source)}\n" + when {
     source.loading -> "Обновляю…"
     !source.enabled -> "Выключена"
-    !source.inMode -> if (source.mode == SourceMode.BLACK) "Ждёт обычных блокировок" else "Ждёт белых списков"
+    !source.inMode -> if (source.mode == SourceMode.BLACK) "Включится при обычных блокировках" else "Включится при белых списках"
     source.error != null && source.nodeCount > 0 -> "Из кэша: ${source.nodeCount} узлов, ${source.error}"
     source.error != null -> source.error.replaceFirstChar { it.uppercase() }
     source.updatedAt > 0 -> "${source.nodeCount} узлов, ${formatAgo(source.updatedAt).removePrefix("обновлён ")}"
