@@ -136,6 +136,7 @@ class ScreenshotTest {
         rule.mainClock.advanceTimeBy(1_500)
         if (act != null) {
             act()
+            rule.waitForIdle()
             rule.mainClock.advanceTimeBy(1_500)
         }
         val path = "build/outputs/roborazzi/$name.png"
