@@ -270,7 +270,7 @@ private const val SpareWhite = "Подписки БС не трогаем: их 
 private fun statusText(source: SourceUi): String = "${modeShort(source.mode)} · обновление ${intervalLabel(source)}\n" + when {
     source.loading -> "Обновляю…"
     !source.enabled -> "Выключена"
-    !source.inMode -> "Сейчас не используется: подписка для ${if (source.mode == SourceMode.BLACK) "обычных блокировок" else "белых списков"}"
+    !source.inMode -> if (source.mode == SourceMode.BLACK) "Ждёт обычных блокировок" else "Ждёт белых списков"
     source.error != null && source.nodeCount > 0 -> "Из кэша: ${source.nodeCount} узлов, ${source.error}"
     source.error != null -> source.error.replaceFirstChar { it.uppercase() }
     source.updatedAt > 0 -> "${source.nodeCount} узлов, ${formatAgo(source.updatedAt).removePrefix("обновлён ")}"
