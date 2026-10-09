@@ -390,9 +390,16 @@ fun IosRow(
 }
 
 @Composable
-fun IosChoiceRow(title: String, selected: Boolean, onClick: () -> Unit, subtitle: String? = null) {
+fun IosChoiceRow(
+    title: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    subtitle: String? = null,
+    icon: ImageVector? = null,
+    iconTint: Color = Ios.colors.tint,
+) {
     val c = Ios.colors
-    if (Ios.material) {
+    if (Ios.material && icon == null) {
         IosRow(
             title = title,
             subtitle = subtitle,
@@ -404,9 +411,12 @@ fun IosChoiceRow(title: String, selected: Boolean, onClick: () -> Unit, subtitle
             title = title,
             subtitle = subtitle,
             onClick = onClick,
+            icon = icon,
+            iconTint = iconTint,
             trailing = {
-                if (selected) {
-                    Icon(Icons.Rounded.Check, contentDescription = "Выбрано", tint = c.tint, modifier = Modifier.size(22.dp))
+                when {
+                    Ios.material -> RadioButton(selected = selected, onClick = null)
+                    selected -> Icon(Icons.Rounded.Check, contentDescription = "Выбрано", tint = c.tint, modifier = Modifier.size(22.dp))
                 }
             },
         )

@@ -21,6 +21,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import app.farvater.data.ThemeMode
+import app.farvater.data.UiStyle
 import app.farvater.data.UpdateWorker
 import app.farvater.net.ImportLink
 import app.farvater.ui.MainViewModel
@@ -63,7 +64,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val state by vm.state.collectAsStateWithLifecycle()
             val settings = state.settings
-            val dark = when (settings.themeMode) {
+            val dark = settings.uiStyle == UiStyle.ROSKOMPOZOR || when (settings.themeMode) {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
                 ThemeMode.LIGHT -> false
                 ThemeMode.DARK -> true

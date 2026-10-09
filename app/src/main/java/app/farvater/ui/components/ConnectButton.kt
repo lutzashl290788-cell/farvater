@@ -51,15 +51,20 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.farvater.R
+import app.farvater.data.UiStyle
 import app.farvater.ui.ios.glassRim
 import app.farvater.ui.theme.Ios
+import app.farvater.ui.theme.LocalUiStyle
 import kotlinx.coroutines.delay
 import kotlin.math.PI
 import kotlin.math.cos
@@ -78,6 +83,7 @@ fun ConnectButton(
     val haptics = LocalHapticFeedback.current
     val c = Ios.colors
     val material = Ios.material
+    val power = if (LocalUiStyle.current == UiStyle.ROSKOMPOZOR) ImageVector.vectorResource(R.drawable.ic_rkp) else Icons.Rounded.PowerSettingsNew
     val dark = c.dark
     val rim = glassRim(dark)
 
@@ -257,7 +263,7 @@ fun ConnectButton(
                     imageVector = when (m) {
                         ConnectMode.Searching -> Icons.Rounded.Radar
                         ConnectMode.Error -> Icons.Rounded.ErrorOutline
-                        else -> Icons.Rounded.PowerSettingsNew
+                        else -> power
                     },
                     contentDescription = null,
                     tint = glyph,

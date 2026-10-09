@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.farvater.core.model.NetMode
 import app.farvater.core.model.Protocol
@@ -72,6 +74,15 @@ class ScreenshotTest {
     @Test fun materialSettingsLight() = shot("16_material_settings_light", dark = false, material = true) { Settings() }
     @Test fun materialSettingsDark() = shot("16_material_settings_dark", dark = true, material = true) { Settings() }
 
+    @Test fun rkpHomeIdle() = shot("21_rkp_home_idle", dark = true, rkp = true) { Home(VpnState.Idle) }
+    @Test fun rkpHomeConnected() = shot("22_rkp_home_connected", dark = true, rkp = true) { Home(Fake.connected) }
+    @Test fun rkpServers() = shot("23_rkp_servers", dark = true, rkp = true) { Servers() }
+    @Test fun rkpSources() = shot("24_rkp_sources", dark = true, rkp = true) { Sources() }
+    @Test fun rkpAppearance() = shot(
+        "25_rkp_appearance", dark = true, rkp = true,
+        act = { rule.onNodeWithText("Оформление").performClick() },
+    ) { Settings(Fake.state.settings.copy(uiStyle = UiStyle.ROSKOMPOZOR)) }
+
     @Composable
     private fun Alert() {
         Home(VpnState.Idle)
@@ -101,16 +112,33 @@ class ScreenshotTest {
     }
 
     @OptIn(ExperimentalRoborazziApi::class)
-    private fun shot(name: String, dark: Boolean, screen: Boolean = false, material: Boolean = false, content: @Composable () -> Unit) {
+    private fun shot(
+        name: String,
+        dark: Boolean,
+        screen: Boolean = false,
+        material: Boolean = false,
+        rkp: Boolean = false,
+        act: (() -> Unit)? = null,
+        content: @Composable () -> Unit,
+    ) {
         rule.mainClock.autoAdvance = false
         rule.setContent {
             FarvaterTheme(
                 darkTheme = dark,
-                style = if (material) UiStyle.MATERIAL else UiStyle.IOS,
+                style = when {
+                    rkp -> UiStyle.ROSKOMPOZOR
+                    material -> UiStyle.MATERIAL
+                    else -> UiStyle.IOS
+                },
                 dynamicColor = false,
             ) { content() }
         }
         rule.mainClock.advanceTimeBy(1_500)
+        if (act != null) {
+            act()
+            rule.waitForIdle()
+            rule.mainClock.advanceTimeBy(1_500)
+        }
         val path = "build/outputs/roborazzi/$name.png"
         if (screen) captureScreenRoboImage(path) else rule.onRoot().captureRoboImage(path)
     }
@@ -146,9 +174,9 @@ class ScreenshotTest {
     }
 
     @Composable
-    private fun Settings() = FarvaterFrame(tab = Tab.Settings, onTab = {}) { p ->
+    private fun Settings(settings: AppSettings = Fake.state.settings) = FarvaterFrame(tab = Tab.Settings, onTab = {}) { p ->
         androidx.compose.foundation.layout.Box(Modifier.padding(p)) {
-            SettingsScreen(settings = Fake.state.settings, onChange = {}, onOpenDocument = {})
+            SettingsScreen(settings = settings, onChange = {}, onOpenDocument = {})
         }
     }
 }

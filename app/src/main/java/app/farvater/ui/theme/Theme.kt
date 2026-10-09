@@ -129,7 +129,7 @@ object Ios {
         @Composable @ReadOnlyComposable get() = LocalIos.current
 
     val material: Boolean
-        @Composable @ReadOnlyComposable get() = LocalUiStyle.current == UiStyle.MATERIAL
+        @Composable @ReadOnlyComposable get() = LocalUiStyle.current != UiStyle.IOS
 }
 
 private val OrangeLight = lightColorScheme(
@@ -172,6 +172,29 @@ private val OrangeDark = darkColorScheme(
     surfaceContainerLowest = Color(0xFF120D08), surfaceContainerLow = Color(0xFF201B16),
     surfaceContainer = Color(0xFF251F1A), surfaceContainerHigh = Color(0xFF302924),
     surfaceContainerHighest = Color(0xFF3B342E),
+)
+
+val RkpBlue = Color(0xFF3FC4FF)
+
+private val RkpDark = darkColorScheme(
+    primary = RkpBlue, onPrimary = Color(0xFF00344A),
+    primaryContainer = Color(0xFF004C69), onPrimaryContainer = Color(0xFFC4E7FF),
+    secondary = Color(0xFFB5C9D7), onSecondary = Color(0xFF1F333E),
+    secondaryContainer = Color(0xFF364955), onSecondaryContainer = Color(0xFFD1E5F4),
+    tertiary = Color(0xFFC9C1EA), onTertiary = Color(0xFF312C4C),
+    tertiaryContainer = Color(0xFF484264), onTertiaryContainer = Color(0xFFE6DEFF),
+    error = Color(0xFFFFB4AB), onError = Color(0xFF690005),
+    errorContainer = Color(0xFF93000A), onErrorContainer = Color(0xFFFFDAD6),
+    background = Color(0xFF1E1F23), onBackground = Color(0xFFE3E3E6),
+    surface = Color(0xFF1E1F23), onSurface = Color(0xFFE3E3E6),
+    surfaceVariant = Color(0xFF41474D), onSurfaceVariant = Color(0xFFC1C7CE),
+    outline = Color(0xFF8B9198), outlineVariant = Color(0xFF41474D),
+    inverseSurface = Color(0xFFE3E3E6), inverseOnSurface = Color(0xFF2E3034), inversePrimary = Color(0xFF00658B),
+    surfaceTint = RkpBlue, scrim = Color.Black,
+    surfaceDim = Color(0xFF1E1F23), surfaceBright = Color(0xFF3B3D42),
+    surfaceContainerLowest = Color(0xFF18191C), surfaceContainerLow = Color(0xFF232428),
+    surfaceContainer = Color(0xFF27292D), surfaceContainerHigh = Color(0xFF313338),
+    surfaceContainerHighest = Color(0xFF3B3D42),
 )
 
 private fun materialColors(s: ColorScheme, dark: Boolean): IosColors {
@@ -283,22 +306,25 @@ fun FarvaterTheme(
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
-    val material = style == UiStyle.MATERIAL
-    val colorScheme = remember(darkTheme, material, dynamicColor) {
-        if (!material) {
-            scheme(if (darkTheme) IosDark else IosLight)
+    val material = style != UiStyle.IOS
+    val dark = darkTheme || style == UiStyle.ROSKOMPOZOR
+    val colorScheme = remember(dark, style, dynamicColor) {
+        if (style == UiStyle.ROSKOMPOZOR) {
+            RkpDark
+        } else if (!material) {
+            scheme(if (dark) IosDark else IosLight)
         } else if (dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        } else if (darkTheme) {
+            if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        } else if (dark) {
             OrangeDark
         } else {
             OrangeLight
         }
     }
-    val ios = remember(colorScheme, darkTheme, material) {
+    val ios = remember(colorScheme, dark, material) {
         when {
-            material -> materialColors(colorScheme, darkTheme)
-            darkTheme -> IosDark
+            material -> materialColors(colorScheme, dark)
+            dark -> IosDark
             else -> IosLight
         }
     }
