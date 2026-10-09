@@ -380,7 +380,7 @@ private fun AppearancePage(settings: AppSettings, onChange: ((AppSettings) -> Ap
         IosDivider(start = divider)
         IosChoiceRow(
             title = "#РосКомПозор",
-            subtitle = "Material 3 в цветах #РКП: голубой на тёмно-сером, всегда тёмная тема",
+            subtitle = "Material 3 в цветах #РКП: голубой на тёмно-сером фоне",
             selected = settings.uiStyle == UiStyle.ROSKOMPOZOR,
             icon = ImageVector.vectorResource(R.drawable.ic_rkp),
             iconTint = RkpBlue,
