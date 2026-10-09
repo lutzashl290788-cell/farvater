@@ -42,6 +42,7 @@ import androidx.compose.material.icons.rounded.Android
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.Code
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Dns
 import androidx.compose.material.icons.rounded.Email
@@ -121,6 +122,12 @@ import app.farvater.ui.theme.Ios
 import app.farvater.ui.theme.IosType
 import app.farvater.ui.theme.RkpBlue
 import kotlinx.coroutines.launch
+
+private val TestUrls = listOf(
+    "https://www.gstatic.com/generate_204" to "Google, по умолчанию",
+    "https://cp.cloudflare.com/generate_204" to "Cloudflare",
+    "https://www.apple.com/library/test/success.html" to "Apple",
+)
 
 private val ConcurrencyOptions = listOf(8 to "Бережно", 16 to "Обычно", 32 to "Быстро")
 
@@ -532,6 +539,28 @@ private fun TestingPage(settings: AppSettings, onChange: ((AppSettings) -> AppSe
             iconTint = c.gray,
             trailing = { IosSwitch(settings.hideDead, { v -> onChange { it.copy(hideDead = v) } }) },
         )
+        IosDivider(start = Divider.dp)
+        IosRow(
+            title = "Убирать дубли",
+            subtitle = "Один узел на адрес, порт и протокол",
+            icon = Icons.Rounded.ContentCopy,
+            iconTint = c.indigo,
+            trailing = { IosSwitch(settings.dropDuplicates, { v -> onChange { it.copy(dropDuplicates = v) } }) },
+        )
+    }
+    IosSection(
+        header = "Адрес проверки",
+        footer = "Через узел открывается этот адрес, по ответу считается пинг. Если с Google узлы не отвечают, попробуйте другой.",
+    ) {
+        TestUrls.forEachIndexed { i, (url, title) ->
+            if (i > 0) IosDivider()
+            IosChoiceRow(
+                title = title,
+                subtitle = url.removePrefix("https://"),
+                selected = settings.testUrl == url,
+                onClick = { onChange { it.copy(testUrl = url) } },
+            )
+        }
     }
     IosSection(header = "Скорость проверки", footer = "Быстрая проверка нагружает сеть: оператор может начать сбрасывать соединения.") {
         val current = ConcurrencyOptions.minBy { kotlin.math.abs(it.first - settings.concurrency) }.first

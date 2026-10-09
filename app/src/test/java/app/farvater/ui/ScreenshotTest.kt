@@ -82,6 +82,10 @@ class ScreenshotTest {
         "26_connection_dark", dark = true,
         act = { rule.onNodeWithText("Подключение").performClick() },
     ) { Settings() }
+    @Test fun testingDark() = shot(
+        "28_testing_dark", dark = true,
+        act = { rule.onNodeWithText("Проверка узлов").performClick() },
+    ) { Settings() }
     @Test fun sourcesBlackDark() = shot("27_sources_black_dark", dark = true) {
         Sources(
             Fake.state.copy(

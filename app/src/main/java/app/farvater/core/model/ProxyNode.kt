@@ -64,3 +64,7 @@ data class ProxyNode(
         )
     }
 }
+
+fun List<ProxyNode>.onePerEndpoint(keepId: String?): List<ProxyNode> =
+    groupBy { Triple(it.protocol, it.address.lowercase(), it.port) }.values
+        .map { same -> same.firstOrNull { it.id == keepId } ?: same.first() }

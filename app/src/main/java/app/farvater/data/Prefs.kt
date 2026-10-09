@@ -21,6 +21,7 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK }
 data class AppSettings(
     val directRuServices: Boolean = true,
     val hideDead: Boolean = false,
+    val dropDuplicates: Boolean = false,
     val testUrl: String = "https://www.gstatic.com/generate_204",
     val concurrency: Int = 16,
     val onboardingDone: Boolean = false,

@@ -11,6 +11,7 @@ import app.farvater.core.model.NetMode
 import app.farvater.core.model.NetModeChoice
 import app.farvater.core.model.ProxyNode
 import app.farvater.core.model.SourceMode
+import app.farvater.core.model.onePerEndpoint
 import app.farvater.core.parser.SubscriptionParser
 import app.farvater.core.xray.XrayConfigBuilder
 import app.farvater.data.AppSettings
@@ -687,6 +688,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val activeSnaps = snaps.filterKeys { it in active }.values
         val supported = activeSnaps.flatMap { it.nodes }.filter(XrayConfigBuilder::isSupported).distinctBy { it.id }
         val nodes = supported.filterNot(::hideInsecure)
+            .let { if (settings.dropDuplicates) it.onePerEndpoint(prefs.selectedNodeId) else it }
         val selected = reconcileSelection(nodes)
         val res = results.value
         val titles = sources.associate { it.id to it.title }
