@@ -19,7 +19,12 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/lutzashl290788-cell/farvater/releases/latest"><b>Скачать</b></a>
+  <a href="https://github.com/lutzashl290788-cell/farvater/releases/latest"><img alt="Скачать с GitHub" src="https://raw.githubusercontent.com/machiav3lli/oandbackupx/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png" height="64"></a>
+  <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium%3A%2F%2Fadd%2Fhttps%3A%2F%2Fgithub.com%2Flutzashl290788-cell%2Ffarvater"><img alt="Установить через Obtainium" src="https://raw.githubusercontent.com/ImranR98/Obtainium/af286fa8d31d7406d6db167e2314d376d74f7696/assets/graphics/badge_obtainium.png" height="64"></a>
+</p>
+
+<p align="center">
+  <a href="#установка"><b>Установка</b></a>
   &nbsp;&middot;&nbsp;
   <a href="#использование"><b>Как пользоваться</b></a>
   &nbsp;&middot;&nbsp;
@@ -40,7 +45,9 @@
 
 Приложение бесплатное, без рекламы, аналитики и регистрации. Исходный код открыт под лицензией GPL-3.0.
 
-## Содержание
+<details>
+<summary><b>Содержание</b></summary>
+<br>
 
 - [О проекте](#о-проекте)
 - [Возможности](#возможности)
@@ -68,6 +75,8 @@
 - [Благодарности](#благодарности)
 - [Лицензия](#лицензия)
 
+</details>
+
 ## О проекте
 
 Обычный VPN-клиент для Android требует много знать о протоколах и транспортах, а с публичными подписками мучает ручным перебором серверов. Фарватер задуман для человека, у которого есть ссылка и нет времени разбираться: вставил подписку, нажал на кнопку, всё работает.
@@ -81,6 +90,7 @@
 **Подключение**
 
 - Подключение одной кнопкой на главном экране.
+- Плитка в шторке уведомлений: подключает выбранный узел и отключает VPN, не открывая приложение.
 - Поиск рабочего узла: приложение проверяет все серверы и выбирает самый быстрый из ответивших.
 - Выбранный узел не меняется сам. Если он перестал отвечать, на главном экране и в уведомлении появится «Узел не отвечает».
 - Статистика: скорость загрузки и отдачи, трафик за сеанс и за сегодня, время в сети, используемая защита. Скорость и трафик видны и в уведомлении.
@@ -125,7 +135,7 @@
   </tr>
   <tr>
     <td align="center"><img src="docs/screens/sources_dark.png" width="220" alt="Подписки"><br><sub>Подписки</sub></td>
-    <td align="center"><img src="docs/screens/settings_dark.png" width="220" alt="Настройки"><br><sub>Настройки</sub></td>
+    <td align="center"><img src="docs/screens/import_dark.png" width="220" alt="Добавление подписки по ссылке"><br><sub>Импорт по ссылке</sub></td>
     <td align="center"><img src="docs/screens/onboarding_dark.png" width="220" alt="Первый запуск"><br><sub>Первый запуск</sub></td>
   </tr>
 </table>
@@ -138,7 +148,7 @@
     <td align="center" width="25%"><img src="docs/screens/home_connected_light.png" width="180" alt="Главный экран"><br><sub>Главный экран</sub></td>
     <td align="center" width="25%"><img src="docs/screens/servers_light.png" width="180" alt="Список узлов"><br><sub>Список узлов</sub></td>
     <td align="center" width="25%"><img src="docs/screens/sources_light.png" width="180" alt="Подписки"><br><sub>Подписки</sub></td>
-    <td align="center" width="25%"><img src="docs/screens/settings_light.png" width="180" alt="Настройки"><br><sub>Настройки</sub></td>
+    <td align="center" width="25%"><img src="docs/screens/subscription_light.png" width="180" alt="Карточка подписки"><br><sub>Карточка подписки</sub></td>
   </tr>
 </table>
 </details>
@@ -151,7 +161,7 @@
     <td align="center" width="25%"><img src="docs/screens/material_home_light.png" width="180" alt="Главный экран в стиле Material You"><br><sub>Главный экран</sub></td>
     <td align="center" width="25%"><img src="docs/screens/material_home_dark.png" width="180" alt="Подключение в стиле Material You"><br><sub>Подключение</sub></td>
     <td align="center" width="25%"><img src="docs/screens/material_servers_light.png" width="180" alt="Список узлов в стиле Material You"><br><sub>Список узлов</sub></td>
-    <td align="center" width="25%"><img src="docs/screens/material_settings_dark.png" width="180" alt="Настройки в стиле Material You"><br><sub>Настройки</sub></td>
+    <td align="center" width="25%"><img src="docs/screens/material_sources_light.png" width="180" alt="Подписки в стиле Material You"><br><sub>Подписки</sub></td>
   </tr>
 </table>
 </details>
@@ -422,7 +432,7 @@ export ANDROID_NDK_HOME="$ANDROID_SDK_ROOT/ndk/27.2.12479018"
 gradle :app:testDebugUnitTest :app:assembleDebug
 ```
 
-Скрипт `fetch-natives.sh` скачивает `libv2ray.aar` из релиза AndroidLibXrayLite и собирает `libhev-socks5-tunnel.so` для трёх архитектур. Готовые APK появятся в `app/build/outputs/apk/debug/`.
+Скрипт `fetch-natives.sh` скачивает `libv2ray.aar` из релиза AndroidLibXrayLite и собирает `libhev-socks5-tunnel.so` для четырёх архитектур. Готовые APK появятся в `app/build/outputs/apk/debug/`.
 
 Без нативных библиотек приложение соберётся, но подключиться не сможет: в настройках появится пометка «Неполная сборка».
 
