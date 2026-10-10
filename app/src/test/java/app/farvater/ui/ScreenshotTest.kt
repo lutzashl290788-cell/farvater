@@ -82,6 +82,7 @@ class ScreenshotTest {
         "26_connection_dark", dark = true,
         act = { rule.onNodeWithText("Подключение").performClick() },
     ) { Settings() }
+    @Test fun duplicatesDark() = shot("29_servers_duplicates_dark", dark = true) { Servers(Fake.state.copy(duplicates = 13)) }
     @Test fun testingDark() = shot(
         "28_testing_dark", dark = true,
         act = { rule.onNodeWithText("Проверка узлов").performClick() },
@@ -172,10 +173,10 @@ class ScreenshotTest {
     }
 
     @Composable
-    private fun Servers() = FarvaterFrame(tab = Tab.Servers, onTab = {}) { p ->
+    private fun Servers(state: UiState = Fake.state) = FarvaterFrame(tab = Tab.Servers, onTab = {}) { p ->
         androidx.compose.foundation.layout.Box(Modifier.padding(p)) {
             ServersScreen(
-                state = Fake.state, onSelect = {}, onTestAll = {}, onCancelTest = {},
+                state = state, onSelect = {}, onTestAll = {}, onCancelTest = {},
                 onDeleteManual = {}, onCopied = {},
             )
         }

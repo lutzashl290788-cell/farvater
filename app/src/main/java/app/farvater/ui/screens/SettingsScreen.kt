@@ -154,6 +154,7 @@ fun SettingsScreen(
     updateVersion: String? = null,
     checkingUpdates: Boolean = false,
     onCheckUpdates: () -> Unit = {},
+    duplicates: Int = 0,
 ) {
     var page by rememberSaveable { mutableStateOf<SettingsPage?>(null) }
     var showApps by remember { mutableStateOf(false) }
@@ -188,7 +189,7 @@ fun SettingsScreen(
                     SettingsPage.Connection -> ConnectionPage(settings, onChange) { showApps = true }
                     SettingsPage.Security -> SecurityPage(settings, onChange)
                     SettingsPage.Subscriptions -> SubscriptionsPage(settings, onChange, hwid, onCopied)
-                    SettingsPage.Testing -> TestingPage(settings, onChange)
+                    SettingsPage.Testing -> TestingPage(settings, onChange, duplicates)
                     SettingsPage.Background -> BackgroundPage()
                     SettingsPage.Updates -> UpdatesPage(settings, onChange, updateVersion, checkingUpdates, onCheckUpdates) { showChangelog = true }
                     SettingsPage.Documents -> DocumentsPage(onOpenDocument)
@@ -531,14 +532,15 @@ private fun SubscriptionsPage(
 }
 
 @Composable
-private fun TestingPage(settings: AppSettings, onChange: ((AppSettings) -> AppSettings) -> Unit) {
+private fun TestingPage(settings: AppSettings, onChange: ((AppSettings) -> AppSettings) -> Unit, duplicates: Int) {
     val c = Ios.colors
     IosSection(
-        footer = "Полные копии узлов, которые отличаются только названием, Фарватер убирает всегда. Этот " +
-            "переключатель считает дублями и узлы с одинаковыми адресом, портом и протоколом, даже если у них " +
-            "разные SNI, ключи или отпечаток TLS, и оставляет из них один: список короче, проверка быстрее, " +
-            "выбранный узел не пропадёт. По умолчанию выключено: такие узлы не всегда равноценны, и если один " +
-            "не работает, другой иногда работает.",
+        footer = "Полные копии узлов, то есть одинаковые ссылки с разными названиями, Фарватер убирает всегда. " +
+            "Этот переключатель убирает ещё и узлы с теми же адресом, портом и протоколом, даже если у них " +
+            "другие SNI, ключ Reality, отпечаток TLS, пользователь или транспорт. Из каждой такой группы " +
+            "остаётся выбранный узел, а если его там нет, тот, что раньше в подписке. Остальные не " +
+            "показываются, не проверяются и не участвуют в поиске рабочего узла. Поэтому по умолчанию " +
+            "выключено: если оставшийся узел не работает, другой из группы иногда работает.",
     ) {
         IosRow(
             title = "Скрывать неработающие",
@@ -549,7 +551,11 @@ private fun TestingPage(settings: AppSettings, onChange: ((AppSettings) -> AppSe
         IosDivider(start = Divider.dp)
         IosRow(
             title = "Убирать дубли",
-            subtitle = "Один узел на адрес, порт и протокол",
+            subtitle = when {
+                duplicates == 0 -> "Сейчас дублей нет"
+                settings.dropDuplicates -> "Скрыто дублей: $duplicates"
+                else -> "Найдено дублей: $duplicates"
+            },
             icon = Icons.Rounded.ContentCopy,
             iconTint = c.indigo,
             trailing = { IosSwitch(settings.dropDuplicates, { v -> onChange { it.copy(dropDuplicates = v) } }) },
