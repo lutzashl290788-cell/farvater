@@ -533,7 +533,12 @@ private fun SubscriptionsPage(
 @Composable
 private fun TestingPage(settings: AppSettings, onChange: ((AppSettings) -> AppSettings) -> Unit) {
     val c = Ios.colors
-    IosSection {
+    IosSection(
+        footer = "Один и тот же сервер иногда приходит несколько раз: из разных подписок или с другим отпечатком " +
+            "браузера, SNI и ключами. Если убирать дубли, на каждый адрес, порт и протокол останется один узел: " +
+            "список короче, проверка быстрее, выбранный узел не пропадёт. По умолчанию выключено: при белых " +
+            "списках вариант с другим SNI иногда проходит, когда остальные не работают.",
+    ) {
         IosRow(
             title = "Скрывать неработающие",
             icon = Icons.Rounded.VisibilityOff,
