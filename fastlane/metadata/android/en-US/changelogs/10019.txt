@@ -1,0 +1,2 @@
+- Optional duplicate removal: one node per address, port and protocol for a shorter list and faster checks (off by default)
+- Choose the check address: Google, Cloudflare, Apple or Firefox
