@@ -1,0 +1,3 @@
+- Farvater finds duplicates itself and asks whether to remove or keep them
+- Clearer description of what duplicate removal does
+- Fixed the hidden insecure nodes counter when duplicate removal is on
