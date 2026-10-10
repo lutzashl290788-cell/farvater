@@ -127,6 +127,7 @@ private val TestUrls = listOf(
     "https://www.gstatic.com/generate_204" to "Google, по умолчанию",
     "https://cp.cloudflare.com/generate_204" to "Cloudflare",
     "https://www.apple.com/library/test/success.html" to "Apple",
+    "https://detectportal.firefox.com/success.txt" to "Firefox",
 )
 
 private val ConcurrencyOptions = listOf(8 to "Бережно", 16 to "Обычно", 32 to "Быстро")
