@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -60,6 +61,8 @@ import app.farvater.ui.components.nodeSummary
 import app.farvater.ui.ios.AlertAction
 import app.farvater.ui.ios.AlertRole
 import app.farvater.ui.ios.IosAlert
+import app.farvater.ui.ios.IosButton
+import app.farvater.ui.ios.IosButtonStyle
 import app.farvater.ui.ios.IosCircleButton
 import app.farvater.ui.ios.IosCompactBar
 import app.farvater.ui.ios.glassSource
@@ -69,6 +72,7 @@ import app.farvater.ui.ios.IosLargeTitle
 import app.farvater.ui.ios.IosProgressBar
 import app.farvater.ui.ios.IosRow
 import app.farvater.ui.ios.IosSearchField
+import app.farvater.ui.ios.IosSection
 import app.farvater.ui.ios.IosSegmented
 import app.farvater.ui.ios.SectionCorner
 import app.farvater.ui.splitFlag
@@ -86,6 +90,7 @@ fun ServersScreen(
     onCancelTest: () -> Unit,
     onDeleteManual: (ProxyNode) -> Unit,
     onCopied: () -> Unit,
+    onDuplicates: (Boolean) -> Unit = {},
 ) {
     val c = Ios.colors
     var filter by rememberSaveable { mutableIntStateOf(0) }
@@ -139,7 +144,8 @@ fun ServersScreen(
                     subtitle = (
                         if (state.results.isEmpty()) "${state.nodes.size} в списке, не проверены"
                         else "${state.nodes.size} в списке, отвечают $alive"
-                        ) + modeNote + if (state.hiddenInsecure > 0) ", скрыто небезопасных ${state.hiddenInsecure}" else "",
+                        ) + modeNote + (if (state.hiddenInsecure > 0) ", скрыто небезопасных ${state.hiddenInsecure}" else "") +
+                        if (state.settings.dropDuplicates && state.duplicates > 0) ", скрыто дублей ${state.duplicates}" else "",
                 ) {
                     if (state.progress != null) {
                         IosCircleButton(Icons.Rounded.Stop, "Остановить проверку", onCancelTest, tint = c.red)
@@ -176,6 +182,33 @@ fun ServersScreen(
                 }
             }
             item(key = "gap") { Spacer(Modifier.height(4.dp)) }
+
+            if (state.duplicates > 0 && !state.settings.dropDuplicates && !state.settings.duplicatesAsked) {
+                item(key = "duplicates") {
+                    IosSection(footer = "Передумать можно в «Настройки → Проверка узлов».") {
+                        Column(Modifier.padding(16.dp)) {
+                            Text("Найдено дублей: ${state.duplicates}", style = IosType.headline, color = c.label)
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                "Это узлы с тем же адресом, портом и протоколом. Убрать их из списка? " +
+                                    "Останется по одному узлу на адрес, а проверка пойдёт быстрее.",
+                                style = IosType.subheadline,
+                                color = c.secondaryLabel,
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                IosButton("Убрать", onClick = { onDuplicates(true) }, modifier = Modifier.weight(1f))
+                                IosButton(
+                                    "Оставить",
+                                    onClick = { onDuplicates(false) },
+                                    style = IosButtonStyle.Tinted,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
 
             if (visible.isEmpty()) {
                 item(key = "empty") { EmptyState(state.nodes.isEmpty()) }

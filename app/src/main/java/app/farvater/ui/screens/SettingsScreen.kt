@@ -154,6 +154,7 @@ fun SettingsScreen(
     updateVersion: String? = null,
     checkingUpdates: Boolean = false,
     onCheckUpdates: () -> Unit = {},
+    duplicates: Int = 0,
 ) {
     var page by rememberSaveable { mutableStateOf<SettingsPage?>(null) }
     var showApps by remember { mutableStateOf(false) }
@@ -188,7 +189,7 @@ fun SettingsScreen(
                     SettingsPage.Connection -> ConnectionPage(settings, onChange) { showApps = true }
                     SettingsPage.Security -> SecurityPage(settings, onChange)
                     SettingsPage.Subscriptions -> SubscriptionsPage(settings, onChange, hwid, onCopied)
-                    SettingsPage.Testing -> TestingPage(settings, onChange)
+                    SettingsPage.Testing -> TestingPage(settings, onChange, duplicates)
                     SettingsPage.Background -> BackgroundPage()
                     SettingsPage.Updates -> UpdatesPage(settings, onChange, updateVersion, checkingUpdates, onCheckUpdates) { showChangelog = true }
                     SettingsPage.Documents -> DocumentsPage(onOpenDocument)
@@ -531,7 +532,7 @@ private fun SubscriptionsPage(
 }
 
 @Composable
-private fun TestingPage(settings: AppSettings, onChange: ((AppSettings) -> AppSettings) -> Unit) {
+private fun TestingPage(settings: AppSettings, onChange: ((AppSettings) -> AppSettings) -> Unit, duplicates: Int) {
     val c = Ios.colors
     IosSection(
         footer = "Полные копии узлов, которые отличаются только названием, Фарватер убирает всегда. Этот " +
@@ -549,7 +550,11 @@ private fun TestingPage(settings: AppSettings, onChange: ((AppSettings) -> AppSe
         IosDivider(start = Divider.dp)
         IosRow(
             title = "Убирать дубли",
-            subtitle = "Один узел на адрес, порт и протокол",
+            subtitle = when {
+                duplicates == 0 -> "Сейчас дублей нет"
+                settings.dropDuplicates -> "Скрыто дублей: $duplicates"
+                else -> "Найдено дублей: $duplicates"
+            },
             icon = Icons.Rounded.ContentCopy,
             iconTint = c.indigo,
             trailing = { IosSwitch(settings.dropDuplicates, { v -> onChange { it.copy(dropDuplicates = v) } }) },

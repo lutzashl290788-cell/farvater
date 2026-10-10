@@ -80,6 +80,7 @@ data class UiState(
     val message: String? = null,
     val pendingImport: String? = null,
     val hiddenInsecure: Int = 0,
+    val duplicates: Int = 0,
     val update: UpdateInfo? = null,
     val updateStage: UpdateStage = UpdateStage.Idle,
     val showUpdate: Boolean = false,
@@ -687,8 +688,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val active = sources.filter { it.enabled && it.inMode }.map { it.id }.toSet() + ProxyNode.MANUAL_SOURCE
         val activeSnaps = snaps.filterKeys { it in active }.values
         val supported = activeSnaps.flatMap { it.nodes }.filter(XrayConfigBuilder::isSupported).distinctBy { it.id }
-        val nodes = supported.filterNot(::hideInsecure)
-            .let { if (settings.dropDuplicates) it.onePerEndpoint(prefs.selectedNodeId) else it }
+        val secure = supported.filterNot(::hideInsecure)
+        val single = secure.onePerEndpoint(prefs.selectedNodeId)
+        val nodes = if (settings.dropDuplicates) single else secure
         val selected = reconcileSelection(nodes)
         val res = results.value
         val titles = sources.associate { it.id to it.title }
@@ -703,7 +705,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 settings = settings,
                 sources = sources,
                 nodes = if (testing) keepOrder(it.nodes, nodes) else sortNodes(nodes, res),
-                hiddenInsecure = supported.size - nodes.size,
+                hiddenInsecure = supported.size - secure.size,
+                duplicates = secure.size - single.size,
                 results = res,
                 announcements = announcements,
                 netMode = mode,

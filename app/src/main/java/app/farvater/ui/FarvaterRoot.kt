@@ -78,6 +78,7 @@ fun FarvaterRoot(vm: MainViewModel) {
                     onCancelTest = vm::cancelTest,
                     onDeleteManual = vm::deleteManualNode,
                     onCopied = { vm.showMessage("Ссылка скопирована") },
+                    onDuplicates = { remove -> vm.updateSettings { it.copy(dropDuplicates = remove, duplicatesAsked = true) } },
                 )
                 Tab.Sources -> SourcesScreen(
                     state = state,
@@ -101,6 +102,7 @@ fun FarvaterRoot(vm: MainViewModel) {
                     updateVersion = state.update?.versionName,
                     checkingUpdates = state.updateStage is UpdateStage.Checking,
                     onCheckUpdates = vm::openUpdate,
+                    duplicates = state.duplicates,
                 )
             }
         }
