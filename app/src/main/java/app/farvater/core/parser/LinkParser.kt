@@ -36,7 +36,10 @@ object LinkParser {
         val at = beforeQuery.lastIndexOf('@')
         if (at <= 0) return null
         val secret = pctDecode(beforeQuery.substring(0, at))
-        val (host, port) = parseHostPort(beforeQuery.substring(at + 1).trimEnd('/')) ?: return null
+        val authority = beforeQuery.substring(at + 1).trimEnd('/')
+        val (hostPort, hop) = if (protocol == Protocol.HYSTERIA2) hysteriaPorts(authority) else authority to null
+        val (host, port) = parseHostPort(hostPort) ?: return null
+        val params = parseQuery(query).let { q -> if (hop != null && "mport" !in q) q + ("mport" to hop) else q }
         return ProxyNode(
             id = nodeId(raw.substringBefore('#')),
             protocol = protocol,
@@ -44,10 +47,18 @@ object LinkParser {
             address = host,
             port = port,
             secret = secret,
-            params = parseQuery(query),
+            params = params,
             raw = raw,
             sourceId = sourceId,
         )
+    }
+
+    private fun hysteriaPorts(authority: String): Pair<String, String?> {
+        val colon = authority.lastIndexOf(':')
+        if (colon < 0 || authority.endsWith(']')) return "$authority:443" to null
+        val ports = authority.substring(colon + 1)
+        if (ports.all(Char::isDigit)) return authority to null
+        return authority.substring(0, colon + 1) + ports.substringBefore(',').substringBefore('-') to ports
     }
 
     private fun parseVmess(raw: String, sourceId: String): ProxyNode? {

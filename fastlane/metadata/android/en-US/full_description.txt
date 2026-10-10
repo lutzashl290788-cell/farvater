@@ -35,6 +35,6 @@ Farvater connects your phone to your own server or to one from a subscription an
 <li>Updates are verified by SHA-256 and APK signature.</li>
 </ul>
 
-Protocols: VLESS (including Reality and XHTTP), VMess, Trojan, Shadowsocks. Core: Xray-core, tunnel: hev-socks5-tunnel.
+Protocols: VLESS (including Reality and XHTTP), VMess, Trojan, Shadowsocks, Hysteria2. Core: Xray-core, tunnel: hev-socks5-tunnel.
 
 Farvater does not provide any servers. The source code is available under GPL-3.0. The interface is in Russian.

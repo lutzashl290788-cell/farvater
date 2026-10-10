@@ -25,12 +25,10 @@ object XrayConfigBuilder {
         "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8", "169.254.0.0/16",
     )
 
-    fun isSupported(node: ProxyNode): Boolean = node.protocol != Protocol.HYSTERIA2
-
     private val ENCRYPTED_DNS = listOf("https://1.1.1.1/dns-query", "https://8.8.8.8/dns-query")
 
-    fun build(node: ProxyNode, directRuServices: Boolean, forTest: Boolean = false, encryptedDns: Boolean = true): String? {
-        val proxy = outbound(node) ?: return null
+    fun build(node: ProxyNode, directRuServices: Boolean, forTest: Boolean = false, encryptedDns: Boolean = true): String {
+        val proxy = outbound(node)
         return buildJsonObject {
             putJsonObject("log") { put("loglevel", "warning") }
             if (!forTest) {
@@ -96,7 +94,7 @@ object XrayConfigBuilder {
         }.toString()
     }
 
-    private fun outbound(n: ProxyNode): JsonObject? = when (n.protocol) {
+    private fun outbound(n: ProxyNode): JsonObject = when (n.protocol) {
         Protocol.VLESS -> buildJsonObject {
             put("tag", "proxy")
             put("protocol", "vless")
@@ -170,13 +168,24 @@ object XrayConfigBuilder {
             putJsonObject("streamSettings") { put("network", "tcp") }
         }
 
-        Protocol.HYSTERIA2 -> null
+        Protocol.HYSTERIA2 -> buildJsonObject {
+            put("tag", "proxy")
+            put("protocol", "hysteria")
+            putJsonObject("settings") {
+                put("version", 2)
+                put("address", n.address)
+                put("port", n.port)
+            }
+            put("streamSettings", stream(n))
+        }
     }
 
     private fun stream(n: ProxyNode): JsonObject = buildJsonObject {
         val p = n.params
-        val network = n.transport
+        val hysteria = n.protocol == Protocol.HYSTERIA2
+        val network = if (hysteria) "hysteria" else n.transport
         val security = when {
+            hysteria -> "tls"
             n.security.isNotBlank() -> n.security
             n.protocol == Protocol.TROJAN -> "tls"
             else -> "none"
@@ -191,9 +200,11 @@ object XrayConfigBuilder {
         when (security) {
             "tls" -> putJsonObject("tlsSettings") {
                 sni?.let { put("serverName", it) }
-                p["fp"].nb()?.let { put("fingerprint", it) }
-                p["alpn"].nb()?.let { alpn -> putJsonArray("alpn") { alpn.split(',').forEach { add(it.trim()) } } }
-                if (p["allowInsecure"] == "1" || p["insecure"] == "1") put("allowInsecure", true)
+                if (!hysteria) p["fp"].nb()?.let { put("fingerprint", it) }
+                (p["alpn"].nb() ?: "h3".takeIf { hysteria })?.let { alpn ->
+                    putJsonArray("alpn") { alpn.split(',').forEach { add(it.trim()) } }
+                }
+                n.pinnedCert?.let { put("pinnedPeerCertSha256", it) }
             }
             "reality" -> putJsonObject("realitySettings") {
                 put("serverName", sni.orEmpty())
@@ -206,6 +217,33 @@ object XrayConfigBuilder {
         }
 
         when (network) {
+            "hysteria" -> {
+                putJsonObject("hysteriaSettings") {
+                    put("version", 2)
+                    put("auth", n.secret)
+                }
+                val obfs = p["obfs-password"].nb()?.takeIf { (p["obfs"].nb() ?: "salamander") == "salamander" }
+                val hop = p["mport"].nb()
+                if (obfs != null || hop != null) putJsonObject("finalmask") {
+                    putJsonArray("udp") {
+                        obfs?.let {
+                            addJsonObject {
+                                put("type", "salamander")
+                                putJsonObject("settings") { put("password", it) }
+                            }
+                        }
+                        hop?.let {
+                            addJsonObject {
+                                put("type", "udphop")
+                                putJsonObject("settings") {
+                                    put("mode", "intervallocal,intervalremote")
+                                    put("remotePorts", it)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             "ws" -> putJsonObject("wsSettings") {
                 path?.let { put("path", it) }
                 host?.let { put("host", it) }

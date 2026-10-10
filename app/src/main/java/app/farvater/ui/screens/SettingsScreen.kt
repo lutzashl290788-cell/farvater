@@ -772,7 +772,7 @@ fun OnboardingDialog(onChoice: (enableCommunity: Boolean) -> Unit, onOpenDocumen
                 Spacer(Modifier.height(20.dp))
                 Text("Добро пожаловать\nв Фарватер", style = IosType.title1, color = c.label, textAlign = TextAlign.Center)
                 Spacer(Modifier.height(28.dp))
-                Feature(Icons.Rounded.Lock, c.green, "Ваши подписки", "VLESS, Trojan, Shadowsocks и VMess. Банки и госсервисы идут мимо VPN.")
+                Feature(Icons.Rounded.Lock, c.green, "Ваши подписки", "VLESS, Trojan, Shadowsocks, VMess и Hysteria2. Банки и госсервисы идут мимо VPN.")
                 Feature(Icons.Rounded.Public, c.tint, "Публичные подписки", "Бесплатные серверы сообщества помогают при белых списках.")
                 Feature(Icons.Rounded.Shield, c.red, "Осторожно с паролями", "Владельцы чужих серверов видят, куда вы ходите. Не вводите через них пароли.")
                 Spacer(Modifier.height(20.dp))
