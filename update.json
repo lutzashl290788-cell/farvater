@@ -1,38 +1,37 @@
 {
-  "versionCode": 10018,
-  "versionName": "1.0.18",
-  "published": "09.10.2026",
+  "versionCode": 10019,
+  "versionName": "1.0.19",
+  "published": "10.10.2026",
   "critical": false,
   "notes": [
-    "Новая подписка для обычных блокировок: при ЧС работает не только РКП",
-    "Выбор MTU в настройках подключения",
-    "Понятнее, какие подписки работают при белых списках и обычных блокировках"
+    "Можно убирать дубли: один узел на адрес, порт и протокол, список короче, проверка быстрее (по умолчанию выключено)",
+    "Выбор адреса проверки: Google, Cloudflare, Apple или Firefox"
   ],
   "assets": {
     "arm64-v8a": {
-      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.18/Farvater-1.0.18-arm64-v8a.apk",
-      "sha256": "7d8efdca18cf49a427cde6173afb3ebfbc52afada0b7c29a9f147e495f6bc61f",
-      "size": 21320452
+      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.19/Farvater-1.0.19-arm64-v8a.apk",
+      "sha256": "c8ca2d722a34ae6160fbebc62628c00dca9ae345763bfceeb9424eff3df709d3",
+      "size": 21323312
     },
     "armeabi-v7a": {
-      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.18/Farvater-1.0.18-armeabi-v7a.apk",
-      "sha256": "14a60bd91b59160b97b88202ee0e2c8935c465190c87d7d82c6813d21a159dc0",
-      "size": 21830653
+      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.19/Farvater-1.0.19-armeabi-v7a.apk",
+      "sha256": "00f97ca7f1589c480e5ee927431d1fb6d7ac35471a6f0de29fde99ae571cf0c6",
+      "size": 21833494
     },
     "universal": {
-      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.18/Farvater-1.0.18-universal.apk",
-      "sha256": "6aa5bcf55cb4633534b958a682ab4242f37000c365e2e3966969481593581433",
-      "size": 61432423
+      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.19/Farvater-1.0.19-universal.apk",
+      "sha256": "e55999da175a383308bfca9cc2aca4886a864682abbf4e5c8543dacc9f2bcecb",
+      "size": 61435273
     },
     "x86": {
-      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.18/Farvater-1.0.18-x86.apk",
-      "sha256": "5d4c77ae05b276d5d2b9d412ed98c1b068ca77486aa5aaac9f2ca1876c638e6a",
-      "size": 22858661
+      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.19/Farvater-1.0.19-x86.apk",
+      "sha256": "89620c47e479a4561fec630182d55acf27383306115bbb7671ef32d37cd92b4d",
+      "size": 22861516
     },
     "x86_64": {
-      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.18/Farvater-1.0.18-x86_64.apk",
-      "sha256": "3192e56cd794a650283633ac48b59fe3b086a34c362a993ce3b30eef41bc56a3",
-      "size": 22342235
+      "url": "https://github.com/lutzashl290788-cell/farvater/releases/download/v1.0.19/Farvater-1.0.19-x86_64.apk",
+      "sha256": "8cc106e93f167b9576119a799482d4c1a8bf1c4c4c1710fdc07ddf853431e56b",
+      "size": 22345078
     }
   }
 }
