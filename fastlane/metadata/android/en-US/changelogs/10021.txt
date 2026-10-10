@@ -1,0 +1,3 @@
+- Full Hysteria2 support: Salamander obfuscation, port hopping and certificate pinning
+- Hysteria2 nodes are tested through the core right away, over UDP
+- Fixed nodes with allowInsecure or insecure failing to start: the certificate is now always verified
