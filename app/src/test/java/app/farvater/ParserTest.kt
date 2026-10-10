@@ -59,6 +59,13 @@ class ParserTest {
         assertEquals("tls", n.security)
     }
 
+    @Test fun vmessSameConfigDifferentNameHasSameId() {
+        fun link(name: String) = "vmess://" + Base64.getEncoder().encodeToString(
+            """{"v":"2","ps":"$name","add":"1.2.3.4","port":"8080","id":"abc","net":"ws"}""".toByteArray(),
+        )
+        assertEquals(LinkParser.parse(link("a"))!!.id, LinkParser.parse(link("b"))!!.id)
+    }
+
     @Test fun shadowsocksSip002() {
         val user = Base64.getUrlEncoder().withoutPadding().encodeToString("chacha20-ietf-poly1305:secret".toByteArray())
         val n = LinkParser.parse("ss://$user@5.6.7.8:8388#ss")!!

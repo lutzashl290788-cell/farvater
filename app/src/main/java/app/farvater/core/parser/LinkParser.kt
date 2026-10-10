@@ -3,6 +3,7 @@ package app.farvater.core.parser
 import app.farvater.core.model.Protocol
 import app.farvater.core.model.ProxyNode
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
@@ -69,7 +70,7 @@ object LinkParser {
             ).forEach { (k, v) -> if (v.isNotBlank() && v != "none") put(k, v) }
         }
         return ProxyNode(
-            id = nodeId(raw),
+            id = nodeId(JsonObject(obj - "ps").toString()),
             protocol = Protocol.VMESS,
             name = s("ps").ifBlank { "$host:$port" },
             address = host,
