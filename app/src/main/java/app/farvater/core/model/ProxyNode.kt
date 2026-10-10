@@ -28,7 +28,7 @@ data class ProxyNode(
 
     val securityIssue: String?
         get() = when {
-            params["allowInsecure"] == "1" || params["insecure"] == "1" -> "Без проверки сертификата"
+            (params["allowInsecure"] == "1" || params["insecure"] == "1") && pinnedCert == null -> "Без проверки сертификата"
             protocol == Protocol.VLESS && (security.isBlank() || security == "none") -> "Без шифрования"
             protocol == Protocol.TROJAN && security == "none" -> "Без шифрования"
             protocol == Protocol.VMESS && params["scy"].orEmpty().lowercase() in setOf("none", "zero") -> "Без шифрования"
@@ -44,6 +44,8 @@ data class ProxyNode(
         }
 
     val isInsecure: Boolean get() = securityIssue != null
+
+    val pinnedCert: String? get() = (params["pcs"] ?: params["pinSHA256"])?.takeIf { it.isNotBlank() }
 
     val tags: List<String>
         get() = buildList {

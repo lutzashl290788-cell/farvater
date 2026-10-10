@@ -5,8 +5,11 @@ import app.farvater.core.model.onePerEndpoint
 import app.farvater.core.parser.LinkParser
 import app.farvater.core.parser.SubscriptionParser
 import app.farvater.core.xray.XrayConfigBuilder
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -103,12 +106,12 @@ class ParserTest {
     }
 
     @Test fun xrayConfigProtectsLocalProxyAndDns() {
-        val cfg = XrayConfigBuilder.build(LinkParser.parse(vless)!!, directRuServices = false)!!
+        val cfg = XrayConfigBuilder.build(LinkParser.parse(vless)!!, directRuServices = false)
         assertTrue(cfg.contains("\"auth\":\"password\""))
         assertTrue(cfg.contains(app.farvater.core.xray.LocalProxyAuth.pass))
         assertTrue(cfg.contains("https://1.1.1.1/dns-query"))
         assertTrue(cfg.contains("\"dns-out\""))
-        val plain = XrayConfigBuilder.build(LinkParser.parse(vless)!!, directRuServices = false, encryptedDns = false)!!
+        val plain = XrayConfigBuilder.build(LinkParser.parse(vless)!!, directRuServices = false, encryptedDns = false)
         assertTrue(!plain.contains("dns-out"))
     }
 
@@ -118,6 +121,36 @@ class ParserTest {
         val weak = Base64.getEncoder().encodeToString("rc4-md5:pw".toByteArray())
         assertEquals("Устаревшее шифрование", LinkParser.parse("ss://$weak@1.2.3.4:8388#x")!!.securityIssue)
         assertNull(LinkParser.parse(vless)!!.securityIssue)
+        assertNull(LinkParser.parse("hysteria2://p@hy.example.com:443/?insecure=1&pinSHA256=AB:CD#x")!!.securityIssue)
+    }
+
+    @Test fun hysteria2Links() {
+        val n = LinkParser.parse("hysteria2://pa%40ss@hy.example.com:443,20000-30000/?sni=hy.example.com#hy")!!
+        assertEquals(Protocol.HYSTERIA2, n.protocol)
+        assertEquals("hy.example.com", n.address)
+        assertEquals(443, n.port)
+        assertEquals("pa@ss", n.secret)
+        assertEquals("443,20000-30000", n.params["mport"])
+        assertEquals(443, LinkParser.parse("hy2://p@hy.example.com/?sni=x#n")!!.port)
+        assertEquals(20000, LinkParser.parse("hy2://p@[2001:db8::1]:20000-30000/#n")!!.port)
+    }
+
+    @Test fun hysteria2Config() {
+        val link = "hysteria2://pass@hy.example.com:443,20000-30000/?sni=hy.example.com&obfs=salamander&obfs-password=ob&pinSHA256=AB:CD#hy"
+        val cfg = Json.parseToJsonElement(XrayConfigBuilder.build(LinkParser.parse(link)!!, directRuServices = false)).jsonObject
+        val out = cfg["outbounds"]!!.jsonArray[0].jsonObject
+        assertEquals("hysteria", out["protocol"]!!.jsonPrimitive.content)
+        val stream = out["streamSettings"]!!.jsonObject
+        assertEquals("hysteria", stream["network"]!!.jsonPrimitive.content)
+        assertEquals("pass", stream["hysteriaSettings"]!!.jsonObject["auth"]!!.jsonPrimitive.content)
+        assertEquals("AB:CD", stream["tlsSettings"]!!.jsonObject["pinnedPeerCertSha256"]!!.jsonPrimitive.content)
+        val masks = stream["finalmask"]!!.jsonObject["udp"]!!.jsonArray.map { it.jsonObject["type"]!!.jsonPrimitive.content }
+        assertEquals(listOf("salamander", "udphop"), masks)
+    }
+
+    @Test fun insecureFlagNeverReachesXray() {
+        val cfg = XrayConfigBuilder.build(LinkParser.parse("trojan://p@1.2.3.4:443?allowInsecure=1#x")!!, directRuServices = false)
+        assertTrue("allowInsecure" !in cfg)
     }
 
     @Test fun unknownSchemesAreCounted() {
@@ -128,8 +161,7 @@ class ParserTest {
 
     @Test fun xrayConfigHasRealityAndXhttp() {
         val cfg = XrayConfigBuilder.build(LinkParser.parse(vless)!!, directRuServices = true)
-        assertNotNull(cfg)
-        assertTrue(cfg!!.contains("\"realitySettings\""))
+        assertTrue(cfg.contains("\"realitySettings\""))
         assertTrue(cfg.contains("\"xhttpSettings\""))
         assertTrue(cfg.contains("domain:gosuslugi.ru"))
     }

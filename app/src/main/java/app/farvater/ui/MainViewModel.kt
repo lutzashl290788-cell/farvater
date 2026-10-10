@@ -13,7 +13,6 @@ import app.farvater.core.model.ProxyNode
 import app.farvater.core.model.SourceMode
 import app.farvater.core.model.onePerEndpoint
 import app.farvater.core.parser.SubscriptionParser
-import app.farvater.core.xray.XrayConfigBuilder
 import app.farvater.data.AppSettings
 import app.farvater.data.LEGAL_VERSION
 import app.farvater.data.SourceConfig
@@ -649,12 +648,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val mode = effectiveMode(settings)
 
         fun hideInsecure(node: ProxyNode) = settings.safeMode && node.isInsecure && node.sourceId in communityIds
-        fun shown(snap: SourceSnapshot?) = snap?.nodes?.count { XrayConfigBuilder.isSupported(it) && !hideInsecure(it) } ?: 0
+        fun shown(snap: SourceSnapshot?) = snap?.nodes?.count { !hideInsecure(it) } ?: 0
         fun hiddenNote(snap: SourceSnapshot?): String? {
             snap ?: return null
             val parts = buildList {
-                snap.nodes.count { XrayConfigBuilder.isSupported(it) && hideInsecure(it) }.takeIf { it > 0 }?.let { add("$it небезопасных") }
-                snap.nodes.count { !XrayConfigBuilder.isSupported(it) }.takeIf { it > 0 }?.let { add("$it Hysteria2") }
+                snap.nodes.count { hideInsecure(it) }.takeIf { it > 0 }?.let { add("$it небезопасных") }
                 snap.skipped.forEach { (scheme, n) -> add("$n $scheme") }
             }
             return parts.takeIf { it.isNotEmpty() }?.joinToString(", ")
@@ -687,8 +685,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val sources = (community + own).map { it.copy(inMode = it.mode.fits(mode)) }
         val active = sources.filter { it.enabled && it.inMode }.map { it.id }.toSet() + ProxyNode.MANUAL_SOURCE
         val activeSnaps = (sources.map { it.id } + ProxyNode.MANUAL_SOURCE).filter { it in active }.mapNotNull { snaps[it] }
-        val supported = activeSnaps.flatMap { it.nodes }.filter(XrayConfigBuilder::isSupported).distinctBy { it.id }
-        val secure = supported.filterNot(::hideInsecure)
+        val all = activeSnaps.flatMap { it.nodes }.distinctBy { it.id }
+        val secure = all.filterNot(::hideInsecure)
         val single = secure.onePerEndpoint(prefs.selectedNodeId)
         val nodes = if (settings.dropDuplicates) single else secure
         val selected = reconcileSelection(nodes)
@@ -705,7 +703,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 settings = settings,
                 sources = sources,
                 nodes = if (testing) keepOrder(it.nodes, nodes) else sortNodes(nodes, res),
-                hiddenInsecure = supported.size - secure.size,
+                hiddenInsecure = all.size - secure.size,
                 duplicates = secure.size - single.size,
                 results = res,
                 announcements = announcements,

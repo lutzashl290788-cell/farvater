@@ -45,9 +45,10 @@ object NodeTester {
         val realGate = Semaphore(concurrency.coerceIn(1, 32))
         nodes.forEach { node ->
             launch(workers) {
-                val tcp = tcpGate.withPermit { tcping(node) }
-                if (tcp < 0 || !real || node.protocol == Protocol.HYSTERIA2) {
-                    send(TestResult(node.id, tcp, TestMethod.TCP))
+                val udp = node.protocol == Protocol.HYSTERIA2
+                val tcp = if (udp) 0L else tcpGate.withPermit { tcping(node) }
+                if (tcp < 0 || !real) {
+                    send(TestResult(node.id, if (udp) -1L else tcp, TestMethod.TCP))
                     return@launch
                 }
                 send(realGate.withPermit { test(node, url) })
@@ -55,14 +56,14 @@ object NodeTester {
         }
     }
 
-    fun test(node: ProxyNode, url: String): TestResult {
-        if (node.protocol == Protocol.HYSTERIA2) return TestResult(node.id, -1, TestMethod.TCP)
-        if (XrayEngine.isAvailable) {
-            XrayConfigBuilder.build(node, directRuServices = false, forTest = true)?.let { config ->
-                return TestResult(node.id, XrayEngine.measureDelay(config, url), TestMethod.REAL)
-            }
-        }
-        return TestResult(node.id, tcping(node), TestMethod.TCP)
+    fun test(node: ProxyNode, url: String): TestResult = when {
+        XrayEngine.isAvailable -> TestResult(
+            node.id,
+            XrayEngine.measureDelay(XrayConfigBuilder.build(node, directRuServices = false, forTest = true), url),
+            TestMethod.REAL,
+        )
+        node.protocol == Protocol.HYSTERIA2 -> TestResult(node.id, -1, TestMethod.TCP)
+        else -> TestResult(node.id, tcping(node), TestMethod.TCP)
     }
 
     private fun tcping(node: ProxyNode): Long = runCatching {

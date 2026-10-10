@@ -367,7 +367,8 @@ private fun AnnouncementsSection(items: List<Announcement>) {
 
 private fun protectionOf(node: ProxyNode): String = when {
     node.security == "reality" -> "Reality"
-    node.security == "tls" || (node.protocol == Protocol.TROJAN && node.security.isBlank()) -> "TLS"
+    node.security == "tls" || node.protocol == Protocol.HYSTERIA2 ||
+        (node.protocol == Protocol.TROJAN && node.security.isBlank()) -> "TLS"
     node.protocol == Protocol.SHADOWSOCKS -> "Shadowsocks"
     node.protocol == Protocol.VMESS -> "VMess"
     else -> "шифрование узла"

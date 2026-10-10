@@ -35,6 +35,6 @@
 <li>Обновления проверяются по SHA-256 и подписи APK.</li>
 </ul>
 
-Протоколы: VLESS (включая Reality и XHTTP), VMess, Trojan, Shadowsocks. Ядро: Xray-core, туннель: hev-socks5-tunnel.
+Протоколы: VLESS (включая Reality и XHTTP), VMess, Trojan, Shadowsocks, Hysteria2. Ядро: Xray-core, туннель: hev-socks5-tunnel.
 
 Фарватер не предоставляет собственных серверов. Исходный код открыт под лицензией GPL-3.0.

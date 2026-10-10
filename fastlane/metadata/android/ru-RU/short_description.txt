@@ -1,1 +1,1 @@
-Клиент VLESS, VMess, Trojan и Shadowsocks на ядре Xray
+Клиент VLESS, VMess, Trojan, Shadowsocks и Hysteria2 на ядре Xray
