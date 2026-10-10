@@ -1,6 +1,7 @@
 package app.farvater
 
 import app.farvater.core.model.Protocol
+import app.farvater.core.model.onePerEndpoint
 import app.farvater.core.parser.LinkParser
 import app.farvater.core.parser.SubscriptionParser
 import app.farvater.core.xray.XrayConfigBuilder
@@ -32,6 +33,14 @@ class ParserTest {
         val a = LinkParser.parse(vless)!!
         val b = LinkParser.parse(vless.substringBefore('#') + "#other")!!
         assertEquals(a.id, b.id)
+    }
+
+    @Test fun onePerEndpointKeepsSelected() {
+        val a = LinkParser.parse(vless)!!
+        val b = LinkParser.parse(vless.replace("fp=chrome", "fp=firefox"))!!
+        val c = LinkParser.parse("trojan://pass@[2001:db8::1]:8443?sni=vk.com#t")!!
+        assertEquals(listOf(a, c), listOf(a, b, c).onePerEndpoint(null))
+        assertEquals(listOf(b, c), listOf(a, b, c).onePerEndpoint(b.id))
     }
 
     @Test fun ipv6Host() {
