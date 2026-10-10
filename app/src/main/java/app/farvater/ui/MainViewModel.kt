@@ -686,7 +686,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
         val sources = (community + own).map { it.copy(inMode = it.mode.fits(mode)) }
         val active = sources.filter { it.enabled && it.inMode }.map { it.id }.toSet() + ProxyNode.MANUAL_SOURCE
-        val activeSnaps = snaps.filterKeys { it in active }.values
+        val activeSnaps = (sources.map { it.id } + ProxyNode.MANUAL_SOURCE).filter { it in active }.mapNotNull { snaps[it] }
         val supported = activeSnaps.flatMap { it.nodes }.filter(XrayConfigBuilder::isSupported).distinctBy { it.id }
         val secure = supported.filterNot(::hideInsecure)
         val single = secure.onePerEndpoint(prefs.selectedNodeId)
